@@ -66,7 +66,5 @@ def fetch_and_save_csv(symbol):
         print(f"Lỗi: {e}")
 
 # --- Chạy thử ---
-fetch_and_save_csv("HPG")
-fetch_and_save_csv("VND")
-fetch_and_save_csv("SSI")
-fetch_and_save_csv("STB")
+
+fetch_and_save_csv("VNINDEX")
