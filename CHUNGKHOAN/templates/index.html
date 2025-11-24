@@ -14,9 +14,11 @@
         </div>
         <div class="nav">
             <a href="#" class="active">Bảng Giá</a>
-            <a href="#">Biểu đồ kỹ thuật</a>
-            <a href="#">Tin tức</a>
-            <a href="#">Danh mục</a>
+            <a href="#">Phân tích đầu tư</a>
+            <a href="#">Sổ lệnh</a>
+            <a href="#">Danh mục nắm giữ</a>
+            <a href="#">Quản lý tài sản</a>
+            <a href="#">Giao dịch tiền</a>
         </div>
         <div class="login">
             <button>Đăng nhập</button>
@@ -90,16 +92,28 @@
                             <th class="text-right">Thấp</th>
                         </tr>
                     </thead>
-                    <tbody id="stock-table-body">
-                        <tr>
-                            <td colspan="7" style="text-align: center; color: #9AA3AC;">Đang tải dữ liệu...</td>
+                    <tbody>
+                        {% for s in stocks %}
+                        <tr class="{{ s.css_class }}">
+                            <td class="symbol">{{ s.symbol }}</td>
+                            <td class="price-cell">{{ s.price_str }}</td>
+                            <td class="change">{{ s.sign }}{{ s.change_str }} {{ s.arrow }}</td>
+                            <td class="percent">{{ s.sign }}{{ s.percent_str }}</td>
+                            <td class="text-right">{{ s.vol_str }}</td>
+                            <td class="text-right">{{ s.high_str }}</td>
+                            <td class="text-right">{{ s.low_str }}</td>
                         </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="7" style="text-align: center;">Chưa có dữ liệu trong Database</td>
+                        </tr>
+                        {% endfor %}
                     </tbody>
                 </table>
             </div>
         </div>
     </main>
 
-    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+
 </body>
 </html>
