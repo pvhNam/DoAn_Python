@@ -1,0 +1,28 @@
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background-color: #000000; color: #FFFFFF; font-family: 'Inter', sans-serif; }
+
+header { background-color: #0A121C; display: flex; justify-content: space-between; align-items: center; padding: 12px 30px; border-bottom: 1px solid #1A2430; }
+.logo h2 { color: #00B3FF; margin: 0; }
+.nav a { color: #9AA3AC; text-decoration: none; font-size: 14px; font-weight: 500; margin-right: 25px; }
+.nav a.active { color: #00B3FF; }
+.login button { background-color: #00B3FF; border: none; padding: 8px 16px; border-radius: 4px; font-weight: 600; cursor: pointer; }
+
+main { padding: 30px; max-width: 1200px; margin: 0 auto; }
+
+.market-table-section { background-color: #0A121C; padding: 20px; border-radius: 8px; border: 1px solid #1A2430; }
+.section-header { display: flex; justify-content: space-between; margin-bottom: 15px; }
+.section-title { font-size: 18px; border-left: 4px solid #00B3FF; padding-left: 10px; }
+.live-indicator { color: #00C853; font-size: 12px; animation: blink 2s infinite; }
+@keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+
+.market-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.market-table th { background-color: #16202C; color: #9AA3AC; padding: 12px; text-align: right; }
+.market-table th.text-left { text-align: left; }
+.market-table td { padding: 12px; border-bottom: 1px solid #1A2430; text-align: right; font-weight: 500; }
+.market-table td.symbol { text-align: left; font-weight: 700; color: #fff; }
+.market-table tr:hover { background-color: #1A2430; cursor: pointer; }
+
+/* MÀU SẮC */
+.row-up .price-cell, .row-up .change, .row-up .percent { color: #00C853; }
+.row-down .price-cell, .row-down .change, .row-down .percent { color: #FF1744; }
+.row-ref .price-cell, .row-ref .change, .row-ref .percent { color: #FFD700; }
