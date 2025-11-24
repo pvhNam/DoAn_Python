@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bảng Giá Chứng Khoán - Live Data</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="./static/css/style.css">
+</head>
+<body>
+    <header>
+        <div class="logo">
+            <h2 style="color: #00B3FF; margin: 0;">STOCK<span style="color: white;">BOARD</span></h2>
+        </div>
+        <div class="nav">
+            <a href="#" class="active">Bảng Giá</a>
+            <a href="#">Biểu đồ kỹ thuật</a>
+            <a href="#">Tin tức</a>
+            <a href="#">Danh mục</a>
+        </div>
+        <div class="login">
+            <button>Đăng nhập</button>
+        </div>
+    </header>
+
+    <main>
+        <div class="price-widget-container">
+            <div class="price-widget index-up">
+                <div class="widget-header">
+                    <span class="index-name">VNINDEX</span>
+                </div>
+                <div class="widget-main-data">
+                    <span class="price">1,254.50</span>
+                    <span class="change-detail">▲ 12.50 (1.01%)</span>
+                </div>
+                <div class="widget-summary">
+                    <span class="advancers">↑ 250</span>
+                    <span class="no-change">• 50</span>
+                    <span class="decliners">↓ 100</span>
+                </div>
+            </div>
+
+            <div class="price-widget index-down">
+                <div class="widget-header">
+                    <span class="index-name">HNX-INDEX</span>
+                </div>
+                <div class="widget-main-data">
+                    <span class="price">230.15</span>
+                    <span class="change-detail">▼ -1.20 (-0.52%)</span>
+                </div>
+                <div class="widget-summary">
+                    <span class="advancers">↑ 80</span>
+                    <span class="no-change">• 20</span>
+                    <span class="decliners">↓ 95</span>
+                </div>
+            </div>
+
+             <div class="price-widget index-ref">
+                <div class="widget-header">
+                    <span class="index-name">UPCOM</span>
+                </div>
+                <div class="widget-main-data">
+                    <span class="price">90.00</span>
+                    <span class="change-detail">■ 0.00 (0.00%)</span>
+                </div>
+                <div class="widget-summary">
+                    <span class="advancers">↑ 50</span>
+                    <span class="no-change">• 50</span>
+                    <span class="decliners">↓ 50</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="market-table-section">
+            <div class="section-header">
+                <h3 class="section-title">Danh mục quan tâm</h3>
+                <span class="live-indicator">● Live</span>
+            </div>
+            
+            <div class="table-responsive">
+                <table class="market-table">
+                    <thead>
+                        <tr>
+                            <th class="text-left">Mã CK</th>
+                            <th class="text-right">Giá khớp</th>
+                            <th class="text-right">+/-</th>
+                            <th class="text-right">%</th>
+                            <th class="text-right">Tổng KL</th>
+                            <th class="text-right">Cao</th>
+                            <th class="text-right">Thấp</th>
+                        </tr>
+                    </thead>
+                    <tbody id="stock-table-body">
+                        <tr>
+                            <td colspan="7" style="text-align: center; color: #9AA3AC;">Đang tải dữ liệu...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>
