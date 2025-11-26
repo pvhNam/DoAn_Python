@@ -95,7 +95,7 @@
                     <tbody>
                         {% for s in stocks %}
                         <tr class="{{ s.css_class }}">
-                            <td class="symbol">{{ s.symbol }}</td>
+                            <td class="symbol" >{{ s.symbol }}</td>
                             <td class="price-cell">{{ s.price_str }}</td>
                             <td class="change">{{ s.sign }}{{ s.change_str }} {{ s.arrow }}</td>
                             <td class="percent">{{ s.sign }}{{ s.percent_str }}</td>

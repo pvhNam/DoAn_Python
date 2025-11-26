@@ -13,11 +13,7 @@ DB_CONFIG = {
 }
 
 # Danh sách mã muốn lấy (Lấy từ 01/01/2024 đến nay)
-WATCHLIST = [ "VND", "SSI", "VIC", "VNM", "PNJ", "MWG", "FPT", "GAS", "HPG", "MSN",
-
-"BID", "CTG", "STB", "ACB", "VPB", "TCB", "MBB", "SHB", "EIB", "HDB",
-
-"VJC", "SAB", "BVH", "REE", "PLX", "PVD", "POW", "SBT", "KDC", "DPM" ]
+WATCHLIST = [ "VND", "SSI", "VIC", "VNM" ]
 START_DATE = "01/01/2024"
 
 def get_db_connection():
