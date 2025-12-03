@@ -72,7 +72,7 @@ def fetch_and_import(symbol):
     params = {
         "Symbol": symbol,
         "StartDate": START_DATE,
-        "EndDate": datetime.now().strftime("%d/%m/%Y"),
+        "EndDate": datetime.now().strftime("%m/%d/%Y"),
         "PageIndex": 1,
         "PageSize": 10000, 
     }
@@ -115,7 +115,6 @@ def fetch_and_import(symbol):
                         cl = clean(item['GiaDieuChinh'])
                     if cl == 0: 
                         cl = (hi + lo) / 2
-
                 data_to_insert.append((symbol, py_date.strftime('%Y-%m-%d'), op, hi, lo, cl, vol))
                 
             except Exception as e:
