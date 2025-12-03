@@ -161,7 +161,88 @@ def portfolio():
                            **footer)
 
 # ... (Các phần login, register, logout giữ nguyên) ...
+# --- ROUTE MỚI: TRANG ĐẶT LỆNH ---
+@app.route('/trade/<symbol>', methods=['GET', 'POST'])
+def trade_stock(symbol):
+    # 1. Bắt buộc đăng nhập mới được giao dịch
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
 
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    # Lấy giá hiện tại của mã đó để hiển thị
+    cursor.execute("""
+        SELECT close FROM stock_history 
+        WHERE symbol = %s 
+        ORDER BY trading_date DESC LIMIT 1
+    """, (symbol,))
+    row = cursor.fetchone()
+    current_price = float(row['close']) if row else 0
+
+    # --- XỬ LÝ KHI ẤN NÚT MUA / BÁN (POST) ---
+    if request.method == 'POST':
+        user_id = session['user_id']
+        quantity = int(request.form['quantity'])
+        trade_price = float(request.form['price'])
+        action = request.form['action'] # 'buy' hoặc 'sell'
+
+        try:
+            # Kiểm tra xem User đã có mã này trong danh mục chưa
+            cursor.execute("SELECT * FROM user_portfolio WHERE user_id = %s AND symbol = %s", (user_id, symbol))
+            existing_stock = cursor.fetchone()
+
+            if action == 'buy':
+                # == LOGIC MUA: TÍNH GIÁ BÌNH QUÂN GIA QUYỀN ==
+                if existing_stock:
+                    old_qty = existing_stock['quantity']
+                    old_price = float(existing_stock['buy_price'])
+                    
+                    new_qty = old_qty + quantity
+                    # Công thức giá vốn trung bình: (Giá cũ * SL cũ + Giá mới * SL mới) / Tổng SL
+                    avg_price = ((old_qty * old_price) + (quantity * trade_price)) / new_qty
+                    
+                    sql = "UPDATE user_portfolio SET quantity = %s, buy_price = %s WHERE id = %s"
+                    cursor.execute(sql, (new_qty, avg_price, existing_stock['id']))
+                else:
+                    # Chưa có thì thêm mới
+                    sql = "INSERT INTO user_portfolio (user_id, symbol, quantity, buy_price) VALUES (%s, %s, %s, %s)"
+                    cursor.execute(sql, (user_id, symbol, quantity, trade_price))
+                
+                flash(f'Đã MUA {quantity} cổ phiếu {symbol} thành công!', 'success')
+
+            elif action == 'sell':
+                # == LOGIC BÁN ==
+                if existing_stock and existing_stock['quantity'] >= quantity:
+                    new_qty = existing_stock['quantity'] - quantity
+                    
+                    if new_qty > 0:
+                        # Bán thì chỉ giảm số lượng, giá vốn giữ nguyên
+                        sql = "UPDATE user_portfolio SET quantity = %s WHERE id = %s"
+                        cursor.execute(sql, (new_qty, existing_stock['id']))
+                    else:
+                        # Nếu bán hết sạch thì xóa dòng đó đi
+                        sql = "DELETE FROM user_portfolio WHERE id = %s"
+                        cursor.execute(sql, (existing_stock['id'],))
+                    
+                    flash(f'Đã BÁN {quantity} cổ phiếu {symbol} thành công!', 'success')
+                else:
+                    flash('Lỗi: Bạn không đủ số lượng cổ phiếu để bán!', 'error')
+
+            conn.commit()
+            return redirect(url_for('portfolio')) # Mua xong chuyển ngay về trang danh mục
+
+        except Exception as e:
+            print(e)
+            flash('Giao dịch thất bại!', 'error')
+
+    conn.close()
+    
+    # --- HIỂN THỊ GIAO DIỆN GET ---
+    return render_template('trade.html', 
+                           symbol=symbol, 
+                           price_raw=current_price,
+                           price_str="{:,.2f}".format(current_price))
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
