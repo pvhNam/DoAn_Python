@@ -67,4 +67,4 @@ def fetch_and_save_csv(symbol):
 
 # --- Chạy thử ---
 
-fetch_and_save_csv("VNINDEX")
+fetch_and_save_csv("STB")

@@ -33,7 +33,8 @@ def get_latest_prices():
         rows = cursor.fetchall()
         
         for row in rows:
-            op, cl = float(row['open']), float(row['close'])
+            op= float(row['open'])
+            cl= float(row['close'])
             change = cl - op
             percent = (change / op * 100) if op > 0 else 0
             
