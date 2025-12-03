@@ -1,8 +1,11 @@
-from flask import Flask, render_template
+from flask import Flask, render_template, request, redirect, url_for, flash, session
 import mysql.connector
+from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
+app.secret_key = 'khoa_bao_mat_cua_ban' # Bắt buộc để dùng session
 
+# Cấu hình Database
 DB_CONFIG = {
     'user': 'python',
     'password': '12345',       
@@ -10,32 +13,30 @@ DB_CONFIG = {
     'database': 'python'
 }
 
+def get_db_connection():
+    return mysql.connector.connect(**DB_CONFIG)
+
+# --- HÀM LẤY DỮ LIỆU CHỨNG KHOÁN (Từ server.py cũ) ---
 def get_latest_prices():
     try:
-        conn = mysql.connector.connect(**DB_CONFIG)
+        conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
-        
         sql = """
-        SELECT t1.*
-        FROM stock_history t1
+        SELECT t1.* FROM stock_history t1
         INNER JOIN (
             SELECT symbol, MAX(trading_date) as max_date
-            FROM stock_history
-            GROUP BY symbol
+            FROM stock_history GROUP BY symbol
         ) t2 ON t1.symbol = t2.symbol AND t1.trading_date = t2.max_date
         ORDER BY t1.symbol ASC
         """
         cursor.execute(sql)
         rows = cursor.fetchall()
         
-        # --- XỬ LÝ FORMAT NGAY TẠI PYTHON (Thay cho JS) ---
         for row in rows:
-            op = float(row['open'])
-            cl = float(row['close'])
+            op, cl = float(row['open']), float(row['close'])
             change = cl - op
             percent = (change / op * 100) if op > 0 else 0
             
-            # 1. Định dạng số (thêm dấu phẩy: 28,500.00)
             row['price_str'] = "{:,.2f}".format(cl)
             row['change_str'] = "{:,.2f}".format(change)
             row['percent_str'] = "{:,.2f}%".format(percent)
@@ -43,19 +44,12 @@ def get_latest_prices():
             row['high_str'] = "{:,.2f}".format(float(row['high']))
             row['low_str'] = "{:,.2f}".format(float(row['low']))
 
-            # 2. Xử lý màu sắc và mũi tên
             if change > 0:
-                row['css_class'] = 'row-up'    # Class màu xanh
-                row['arrow'] = '▲'
-                row['sign'] = '+'
+                row['css_class'], row['arrow'], row['sign'] = 'row-up', '▲', '+'
             elif change < 0:
-                row['css_class'] = 'row-down'  # Class màu đỏ
-                row['arrow'] = '▼'
-                row['sign'] = ''
+                row['css_class'], row['arrow'], row['sign'] = 'row-down', '▼', ''
             else:
-                row['css_class'] = 'row-ref'   # Class màu vàng
-                row['arrow'] = ''
-                row['sign'] = ''
+                row['css_class'], row['arrow'], row['sign'] = 'row-ref', '', ''
             
         cursor.close()
         conn.close()
@@ -64,15 +58,158 @@ def get_latest_prices():
         print(f"Lỗi SQL: {e}")
         return []
 
-# --- CHỈ CÒN ĐÚNG 1 ROUTE NÀY ---
+# --- CÁC ROUTE XỬ LÝ ---
+
+# ... (Các phần import và config giữ nguyên) ...
+
+# --- SỬA LẠI ROUTE INDEX ---
 @app.route('/')
 def index():
-    # Lấy dữ liệu từ Python
     stock_list = get_latest_prices()
+    username = session.get('username')
     
-    # Truyền biến stock_list sang file HTML để vẽ bảng
-    return render_template('index.html', stocks=stock_list)
+    # LỖI CŨ CỦA BẠN: return render_template('index.html', stocks=stock_list)
+    # SỬA THÀNH: Truyền thêm biến username vào
+    return render_template('index.html', stocks=stock_list, username=username)
+
+# --- THÊM ROUTE PORTFOLIO (Để nút "Tài sản" hoạt động) ---
+@app.route('/portfolio')
+def portfolio():
+    # 1. Bảo mật: Chưa đăng nhập thì đá ra
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    
+    # 2. Lấy dữ liệu: Chỉ cần Mã, Số lượng, Giá vốn và Giá thị trường (Close)
+    sql = """
+        SELECT p.symbol, p.quantity, p.buy_price, 
+               h.close as current_price
+        FROM user_portfolio p
+        LEFT JOIN (
+            SELECT symbol, close 
+            FROM stock_history 
+            WHERE trading_date = (SELECT MAX(trading_date) FROM stock_history)
+        ) h ON p.symbol = h.symbol
+        WHERE p.user_id = %s
+    """
+    cursor.execute(sql, (session['user_id'],))
+    my_stocks = cursor.fetchall()
+    conn.close()
+    
+    # Biến tính tổng cho dòng cuối cùng
+    total_cost = 0
+    total_market_val = 0
+
+    # 3. Tính toán và Format
+    for s in my_stocks:
+        # Nếu chưa có dữ liệu giá (ví dụ mã mới lên sàn chưa chạy tool update)
+        if not s['current_price']:
+            s['current_price'] = s['buy_price'] # Giả định giá bằng giá mua để không lỗi
+
+        qty = int(s['quantity'])
+        buy_price = float(s['buy_price'])
+        cur_price = float(s['current_price'])
+        
+        # Tính toán cơ bản
+        cost_val = qty * buy_price*1000          # Tổng vốn bỏ ra
+        market_val = qty * cur_price*1000        # Tổng giá trị hiện tại
+        profit_val = market_val - cost_val  # Lãi/Lỗ (Số tiền)
+        
+        # Tính % Lãi lỗ
+        if cost_val > 0:
+            percent = (profit_val / cost_val) * 100
+        else:
+            percent = 0
+            
+        # Cộng dồn tổng
+        total_cost += cost_val
+        total_market_val += market_val
+
+        # --- FORMAT DỮ LIỆU ĐỂ HIỂN THỊ ---
+        s['quantity_str'] = "{:,}".format(qty)
+        s['buy_price_str'] = "{:,.2f}".format(buy_price)
+        s['current_price_str'] = "{:,.2f}".format(cur_price)
+        s['profit_str'] = "{:,.0f}".format(abs(profit_val)) # Lấy trị tuyệt đối
+        s['percent_profit_str'] = "{:,.2f}%".format(abs(percent))
+        
+        # Xử lý màu sắc và dấu +/-
+        if profit_val > 0:
+            s['color'] = 'text-up'   # Class màu xanh
+            s['sign'] = '+'
+        elif profit_val < 0:
+            s['color'] = 'text-down' # Class màu đỏ
+            s['sign'] = '-'
+        else:
+            s['color'] = 'text-ref'  # Class màu vàng
+            s['sign'] = ''
+
+    # 4. Tính toán tổng kết cuối bảng
+    total_profit_val = total_market_val - total_cost
+    total_percent_val = (total_profit_val / total_cost * 100) if total_cost > 0 else 0
+    
+    footer = {
+        'total_profit_str': "{:+,.0f}".format(total_profit_val),
+        'total_percent_str': "{:+,.2f}%".format(total_percent_val),
+        'total_color': 'text-up' if total_profit_val >= 0 else 'text-down'
+    }
+
+    return render_template('portfolio.html', 
+                           username=session['username'], 
+                           stocks=my_stocks, 
+                           **footer)
+
+# ... (Các phần login, register, logout giữ nguyên) ...
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM users WHERE username = %s", (username,))
+        user = cursor.fetchone()
+        conn.close()
+
+        # Giả sử cấu trúc bảng users: id(0), username(1), email(2), password_hash(3)
+        if user and check_password_hash(user[3], password):
+            session['user_id'] = user[0]
+            session['username'] = user[1]
+            return redirect(url_for('index'))
+        else:
+            flash('Sai tên đăng nhập hoặc mật khẩu!')
+
+    return render_template('login.html')
+
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if request.method == 'POST':
+        username = request.form['username']
+        email = request.form['email']
+        password = request.form['password']
+        hashed_password = generate_password_hash(password)
+
+        try:
+            conn = get_db_connection()
+            cursor = conn.cursor()
+            sql = "INSERT INTO users (username, email, password_hash) VALUES (%s, %s, %s)"
+            cursor.execute(sql, (username, email, hashed_password))
+            conn.commit()
+            conn.close()
+            flash('Đăng ký thành công! Hãy đăng nhập.')
+            return redirect(url_for('login'))
+        except mysql.connector.Error:
+            flash('Tên đăng nhập hoặc Email đã tồn tại!')
+    
+    return render_template('register.html')
+
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect(url_for('index'))
 
 if __name__ == '__main__':
-    print("🚀 Web chạy tại: http://127.0.0.1:5000")
     app.run(debug=True, port=5000)

@@ -13,16 +13,38 @@
             <h2 style="color: #00B3FF; margin: 0;">STOCK<span style="color: white;">BOARD</span></h2>
         </div>
         <div class="nav">
-            <a href="#" class="active">Bảng Giá</a>
+            <a href="/" class="active">Bảng Giá</a>
             <a href="#">Phân tích đầu tư</a>
             <a href="#">Sổ lệnh</a>
-            <a href="#">Danh mục nắm giữ</a>
+            <a href="/portfolio">Danh mục nắm giữ</a>
             <a href="#">Quản lý tài sản</a>
             <a href="#">Giao dịch tiền</a>
         </div>
-        <div class="login">
+        <header>
+    <div class="login">
+    {% if username %}
+        <span style="color: #fff; margin-right: 15px; font-weight: 500;">
+            Xin chào, <span style="color: #00B3FF;">{{ username }}</span>
+        </span>
+        
+        <a href="/portfolio" style="text-decoration: none; margin-right: 10px;">
+            <button style="background-color: #16202C; color: #00B3FF; border: 1px solid #00B3FF;">
+                Tài sản
+            </button>
+        </a>
+
+        <a href="/logout" style="text-decoration: none;">
+            <button style="background-color: #1A2430; color: #FF1744; border: 1px solid #FF1744;">
+                Đăng xuất
+            </button>
+        </a>
+    {% else %}
+        <a href="/login" style="text-decoration: none;">
             <button>Đăng nhập</button>
-        </div>
+        </a>
+    {% endif %}
+</div>
+</header>
     </header>
  
     <main>
