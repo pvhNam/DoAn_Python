@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Danh Mục Của Tôi</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        /* CSS RIÊNG CHO PORTFOLIO ĐƠN GIẢN */
+        .portfolio-container {
+            background-color: #0A121C;
+            padding: 30px;
+            min-height: 100vh;
+        }
+
+        .table-container {
+            background-color: #101924;
+            border-radius: 8px;
+            border: 1px solid #1A2430;
+            overflow: hidden; /* Bo góc cho bảng */
+        }
+
+        .simple-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 15px; /* Chữ to hơn cho dễ đọc */
+        }
+
+        .simple-table th {
+            background-color: #16202C;
+            color: #9AA3AC;
+            padding: 15px;
+            text-align: right;
+            font-weight: 600;
+            border-bottom: 1px solid #2C394B;
+        }
+
+        .simple-table th.text-left { text-align: left; }
+
+        .simple-table td {
+            padding: 15px;
+            border-bottom: 1px solid #1A2430;
+            color: #fff;
+            text-align: right;
+        }
+
+        .simple-table tr:hover {
+            background-color: #1A2430; /* Hiệu ứng hover dòng */
+        }
+
+        /* Mã CK to và đậm */
+        .symbol-col {
+            text-align: left !important;
+            font-weight: 700;
+            color: #00B3FF !important;
+            font-size: 16px;
+        }
+
+        /* Màu sắc lãi lỗ */
+        .text-up { color: #00C853; font-weight: 600; }
+        .text-down { color: #FF1744; font-weight: 600; }
+        .text-ref { color: #FFD700; font-weight: 600; }
+    </style>
+</head>
+<body>
+    <header style="background-color: #0A121C; border-bottom: 1px solid #1A2430; padding: 12px 30px; display: flex; justify-content: space-between; align-items: center;">
+        <div class="logo"><h2 style="color: #00B3FF; margin:0;">STOCK<span style="color: white;">BOARD</span></h2></div>
+        <div class="nav">
+            <a href="/" style="color: #9AA3AC; text-decoration: none; margin-right: 20px;">Thị trường</a>
+            <a href="/portfolio" style="color: #00B3FF; text-decoration: none; font-weight: 600;">Danh mục</a>
+        </div>
+        <div class="login">
+            <span style="color: #fff; margin-right: 15px;">{{ username }}</span>
+            <a href="/logout" style="text-decoration: none;"><button style="background-color: #1A2430; color: #FF1744; border: 1px solid #FF1744; padding: 5px 10px; cursor: pointer;">Thoát</button></a>
+        </div>
+    </header>
+
+    <main class="portfolio-container">
+        <h2 style="color: white; margin-bottom: 20px; border-left: 4px solid #00B3FF; padding-left: 10px;">Tài sản hiện tại</h2>
+        
+        <div class="table-container">
+            <table class="simple-table">
+                <thead>
+                    <tr>
+                        <th class="text-left">Mã CK</th>
+                        <th>Khối lượng</th>
+                        <th>Giá Vốn</th>
+                        <th>Giá Thị Trường</th>
+                        <th>Lãi/Lỗ</th>
+                        <th>% Lãi/Lỗ</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for s in stocks %}
+                    <tr>
+                        <td class="symbol-col">{{ s.symbol }}</td>
+                        
+                        <td>{{ s.quantity_str }}</td>
+                        
+                        <td>{{ s.buy_price_str }}</td>
+                        
+                        <td style="font-weight: bold;">{{ s.current_price_str }}</td>
+                        
+                        <td class="{{ s.color }}">{{ s.sign }}{{ s.profit_str }}</td>
+                        
+                        <td class="{{ s.color }}" style="background-color: rgba(255,255,255,0.05); border-radius: 4px;">
+                            {{ s.sign }}{{ s.percent_profit_str }}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="6" style="text-align: center; padding: 30px; color: #666;">
+                            Danh mục trống. Hãy mua thêm cổ phiếu!
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot>
+                    <tr style="background-color: #0F151C; font-weight: 700; border-top: 2px solid #2C394B;">
+                        <td colspan="4" style="text-align: right; padding-right: 20px;">TỔNG LÃI/LỖ:</td>
+                        <td class="{{ total_color }}" style="font-size: 16px;">{{ total_profit_str }}</td>
+                        <td class="{{ total_color }}">{{ total_percent_str }}</td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </main>
+</body>
+</html>
