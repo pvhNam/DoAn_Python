@@ -1,0 +1,259 @@
+ /* --- THIẾT LẬP CƠ BẢN --- */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    background-color: #000000; /* Nền đen tuyền */
+    color: #FFFFFF;
+    font-family: 'Inter', sans-serif;
+}
+
+/* --- HEADER --- */
+header {
+    background-color: #0A121C; /* Đen xanh nhẹ */
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 30px;
+    border-bottom: 1px solid #1A2430;
+}
+
+.nav a {
+    color: #9AA3AC;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 500;
+    margin-right: 25px;
+    transition: color 0.2s;
+}
+
+.nav a.active, .nav a:hover {
+    color: #00B3FF; /* Xanh dương điểm nhấn */
+}
+
+.login button {
+    background-color: #00B3FF;
+    color: #000;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+/* --- MAIN CONTENT --- */
+main {
+    padding: 20px 30px;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+/* --- WIDGETS --- */
+.price-widget-container {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 30px;
+    flex-wrap: wrap;
+}
+
+.price-widget {
+    flex: 1;
+    min-width: 250px;
+    background-color: #0A121C;
+    padding: 15px;
+    border-radius: 8px;
+    border: 1px solid #1A2430;
+}
+
+.widget-header .index-name {
+    color: #9AA3AC;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.widget-main-data .price {
+    display: block;
+    font-size: 24px;
+    font-weight: 700;
+    margin: 5px 0;
+}
+
+.widget-main-data .change-detail {
+    font-size: 14px;
+    font-weight: 500;
+}
+
+/* Màu sắc Widget */
+.index-up .price, .index-up .change-detail { color: #00C853; } /* Xanh lá */
+.index-down .price, .index-down .change-detail { color: #FF1744; } /* Đỏ */
+.index-ref .price, .index-ref .change-detail { color: #FFD700; } /* Vàng */
+
+.widget-summary {
+    margin-top: 10px;
+    font-size: 12px;
+    display: flex;
+    justify-content: space-between;
+}
+.widget-summary span { opacity: 0.8; }
+
+/* --- BẢNG GIÁ (MARKET TABLE) --- */
+.market-table-section {
+    background-color: #0A121C;
+    padding: 20px;
+    border-radius: 8px;
+    border: 1px solid #1A2430;
+}
+
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.section-title {
+    font-size: 18px;
+    font-weight: 600;
+    border-left: 4px solid #00B3FF;
+    padding-left: 10px;
+}
+
+.live-indicator {
+    color: #00C853;
+    font-size: 12px;
+    font-weight: 600;
+    animation: blink 2s infinite;
+}
+
+@keyframes blink {
+    0% { opacity: 1; }
+    50% { opacity: 0.5; }
+    100% { opacity: 1; }
+}
+
+.table-responsive {
+    overflow-x: auto;
+}
+
+.market-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+}
+
+.market-table thead th {
+    background-color: #16202C;
+    color: #9AA3AC;
+    padding: 12px;
+    text-align: right;
+    font-weight: 500;
+}
+
+.market-table thead th.text-left { text-align: left; }
+
+.market-table tbody td {
+    padding: 12px;
+    border-bottom: 1px solid #1A2430;
+    text-align: right;
+    font-weight: 500;
+}
+
+.market-table tbody td.symbol {
+    text-align: left;
+    font-weight: 700;
+    color: #fff;
+}
+
+.market-table tbody tr:hover {
+    background-color: #1A2430;
+    cursor: pointer;
+}
+
+/* --- MÀU SẮC DÒNG (ROW COLORS) --- */
+.row-up .price-cell, .row-up .change, .row-up .percent { color: #00C853; }
+.row-down .price-cell, .row-down .change, .row-down .percent { color: #FF1744; }
+.row-ref .price-cell, .row-ref .change, .row-ref .percent { color: #FFD700; }
+ .auth-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 80vh; /* Căn giữa theo chiều dọc */
+        }
+
+        .auth-box {
+            background-color: #0A121C;
+            border: 1px solid #1A2430;
+            padding: 40px;
+            border-radius: 8px;
+            width: 100%;
+            max-width: 400px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+        }
+
+        .auth-title {
+            text-align: center;
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 30px;
+            color: #fff;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #9AA3AC;
+            font-size: 14px;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 12px;
+            background-color: #16202C;
+            border: 1px solid #2C394B;
+            border-radius: 4px;
+            color: #fff;
+            font-family: 'Inter', sans-serif;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .form-control:focus {
+            border-color: #00B3FF;
+        }
+
+        .btn-submit {
+            width: 100%;
+            padding: 12px;
+            background-color: #00B3FF;
+            color: #000;
+            border: none;
+            border-radius: 4px;
+            font-weight: 700;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            margin-top: 10px;
+        }
+
+        .btn-submit:hover {
+            background-color: #33C2FF;
+        }
+
+        .auth-footer {
+            margin-top: 20px;
+            text-align: center;
+            font-size: 14px;
+            color: #9AA3AC;
+        }
+
+        .auth-footer a {
+            color: #00B3FF;
+            text-decoration: none;
+        }
