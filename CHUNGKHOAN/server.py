@@ -3,9 +3,9 @@ import mysql.connector
 from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
-app.secret_key = 'khoa_bao_mat_cua_ban' # Bắt buộc để dùng session
+app.secret_key = 'khoa_bao_mat_cua_ban' # để dùng session
 
-# Cấu hình Database
+# cấu hình Database
 DB_CONFIG = {
     'user': 'python',
     'password': '12345',       
@@ -16,7 +16,7 @@ DB_CONFIG = {
 def get_db_connection():
     return mysql.connector.connect(**DB_CONFIG)
 
-# --- HÀM LẤY DỮ LIỆU CHỨNG KHOÁN (Từ server.py cũ) ---
+# lấy giá chứng khoán mới nhất
 def get_latest_prices():
     try:
         conn = get_db_connection()
@@ -58,32 +58,25 @@ def get_latest_prices():
     except Exception as e:
         print(f"Lỗi SQL: {e}")
         return []
-
-# --- CÁC ROUTE XỬ LÝ ---
-
-# ... (Các phần import và config giữ nguyên) ...
-
-# --- SỬA LẠI ROUTE INDEX ---
+# route index
 @app.route('/')
 def index():
     stock_list = get_latest_prices()
+    # thêm session
     username = session.get('username')
-    
-    # LỖI CŨ CỦA BẠN: return render_template('index.html', stocks=stock_list)
-    # SỬA THÀNH: Truyền thêm biến username vào
     return render_template('index.html', stocks=stock_list, username=username)
 
-# --- THÊM ROUTE PORTFOLIO (Để nút "Tài sản" hoạt động) ---
+# thêm tài sản, danh mục nắm giữ (danh sách chứng khoán mua)
 @app.route('/portfolio')
 def portfolio():
-    # 1. Bảo mật: Chưa đăng nhập thì đá ra
+    # kiểm tra coi đã đăng nhập chưa
     if 'user_id' not in session:
         return redirect(url_for('login'))
     
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
     
-    # 2. Lấy dữ liệu: Chỉ cần Mã, Số lượng, Giá vốn và Giá thị trường (Close)
+    # lấy dữ liệu: mã ck, số lượng, giá vốn và giá thị trường (Close)
     sql = """
         SELECT p.symbol, p.quantity, p.buy_price, 
                h.close as current_price
@@ -99,11 +92,11 @@ def portfolio():
     my_stocks = cursor.fetchall()
     conn.close()
     
-    # Biến tính tổng cho dòng cuối cùng
+    # gọi biến để tính tổng tiền
     total_cost = 0
     total_market_val = 0
 
-    # 3. Tính toán và Format
+    # tính toán và Format
     for s in my_stocks:
         # Nếu chưa có dữ liệu giá (ví dụ mã mới lên sàn chưa chạy tool update)
         if not s['current_price']:
@@ -128,7 +121,7 @@ def portfolio():
         total_cost += cost_val
         total_market_val += market_val
 
-        # --- FORMAT DỮ LIỆU ĐỂ HIỂN THỊ ---
+        # format dữ liệu để hiển thị
         s['quantity_str'] = "{:,}".format(qty)
         s['buy_price_str'] = "{:,.2f}".format(buy_price)
         s['current_price_str'] = "{:,.2f}".format(cur_price)
@@ -161,11 +154,10 @@ def portfolio():
                            stocks=my_stocks, 
                            **footer)
 
-# ... (Các phần login, register, logout giữ nguyên) ...
-# --- ROUTE MỚI: TRANG ĐẶT LỆNH ---
+# route mua bán ( trade)
 @app.route('/trade/<symbol>', methods=['GET', 'POST'])
 def trade_stock(symbol):
-    # 1. Bắt buộc đăng nhập mới được giao dịch
+    # kiểm tra coi đã đăng nhập chưa
     if 'user_id' not in session:
         return redirect(url_for('login'))
 
@@ -181,7 +173,7 @@ def trade_stock(symbol):
     row = cursor.fetchone()
     current_price = float(row['close']) if row else 0
 
-    # --- XỬ LÝ KHI ẤN NÚT MUA / BÁN (POST) ---
+    # xử lý nút mua/ bán
     if request.method == 'POST':
         user_id = session['user_id']
         quantity = int(request.form['quantity'])
@@ -194,7 +186,7 @@ def trade_stock(symbol):
             existing_stock = cursor.fetchone()
 
             if action == 'buy':
-                # == LOGIC MUA: TÍNH GIÁ BÌNH QUÂN GIA QUYỀN ==
+                # tính trung bình giá nếu mua chung 1 cổ nhiều lần
                 if existing_stock:
                     old_qty = existing_stock['quantity']
                     old_price = float(existing_stock['buy_price'])
@@ -213,7 +205,7 @@ def trade_stock(symbol):
                 flash(f'Đã MUA {quantity} cổ phiếu {symbol} thành công!', 'success')
 
             elif action == 'sell':
-                # == LOGIC BÁN ==
+                # bán
                 if existing_stock and existing_stock['quantity'] >= quantity:
                     new_qty = existing_stock['quantity'] - quantity
                     
@@ -239,7 +231,7 @@ def trade_stock(symbol):
 
     conn.close()
     
-    # --- HIỂN THỊ GIAO DIỆN GET ---
+    # Giao diện hiển thị
     return render_template('trade.html', 
                            symbol=symbol, 
                            price_raw=current_price,
@@ -256,7 +248,7 @@ def login():
         user = cursor.fetchone()
         conn.close()
 
-        # Giả sử cấu trúc bảng users: id(0), username(1), email(2), password_hash(3)
+        # cấu trúc bảng users: id(0), username(1), email(2), password_hash(3)
         if user and check_password_hash(user[3], password):
             session['user_id'] = user[0]
             session['username'] = user[1]
