@@ -139,7 +139,7 @@ def portfolio():
             s['color'] = 'text-ref'  # Class màu vàng
             s['sign'] = ''
 
-    # 4. Tính toán tổng kết cuối bảng
+    # Tính toán tổng kết cuối bảng
     total_profit_val = total_market_val - total_cost
     total_percent_val = (total_profit_val / total_cost * 100) if total_cost > 0 else 0
     
