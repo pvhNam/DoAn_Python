@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ProTrade - Sàn Chứng Khoán Ảo</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        :root {
+            --bg-dark: #1e1e2d;
+            --bg-card: #2b2b40;
+            --text-light: #e1e1e6;
+            --up-color: #00c087; /* Xanh lá chuẩn trading */
+            --down-color: #ff3b30; /* Đỏ chuẩn trading */
+            --ref-color: #ffc107;
+        }
+
+        body {
+            background-color: #151521;
+            color: var(--text-light);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        /* Navbar Custom */
+        .navbar {
+            background-color: var(--bg-dark) !important;
+            border-bottom: 1px solid #3f3f55;
+        }
+
+        /* Card Custom */
+        .card {
+            background-color: var(--bg-card);
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+            margin-bottom: 20px;
+        }
+        
+        .card-header {
+            background-color: rgba(255,255,255,0.05);
+            border-bottom: 1px solid #3f3f55;
+            color: #fff;
+            font-weight: 600;
+        }
+
+        /* Table Custom */
+        .table {
+            color: var(--text-light);
+            --bs-table-bg: transparent;
+        }
+        .table thead {
+            background-color: rgba(0,0,0,0.2);
+            color: #899bbd;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+        }
+        .table td {
+            border-bottom: 1px solid #3f3f55;
+            vertical-align: middle;
+        }
+
+        /* Colors */
+        .text-up { color: var(--up-color) !important; }
+        .text-down { color: var(--down-color) !important; }
+        .text-ref { color: var(--ref-color) !important; }
+        
+        .bg-up-light { background-color: rgba(0, 192, 135, 0.15); color: var(--up-color); }
+        .bg-down-light { background-color: rgba(255, 59, 48, 0.15); color: var(--down-color); }
+
+        /* Form Inputs */
+        .form-control, .form-select {
+            background-color: #151521;
+            border: 1px solid #3f3f55;
+            color: #fff;
+        }
+        .form-control:focus {
+            background-color: #1e1e2d;
+            color: #fff;
+            border-color: #0d6efd;
+            box-shadow: none;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark py-3">
+        <div class="container">
+            <a class="navbar-brand fw-bold" href="/">
+                <i class="fas fa-chart-line text-primary me-2"></i>PRO<span class="text-primary">TRADE</span>
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto align-items-center">
+                    {% if current_user.is_authenticated %}
+                        <li class="nav-item me-3">
+                            <div class="d-flex align-items-center px-3 py-2 rounded bg-dark border border-secondary">
+                                <i class="fas fa-wallet text-warning me-2"></i>
+                                <span class="fw-bold">{{ "{:,.0f}".format(current_user.balance) }} ₫</span>
+                            </div>
+                        </li>
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                                <i class="fas fa-user-circle fa-lg me-1"></i> {{ current_user.username }}
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-dark dropdown-menu-end">
+                                <li><a class="dropdown-item" href="/logout">Đăng xuất</a></li>
+                            </ul>
+                        </li>
+                    {% else %}
+                        <li class="nav-item"><a class="nav-link" href="/login">Đăng nhập</a></li>
+                        <li class="nav-item ms-2"><a class="btn btn-primary btn-sm px-4" href="/register">Đăng ký ngay</a></li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show shadow-sm" role="alert">
+                        <i class="fas fa-info-circle me-2"></i> {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

@@ -1,0 +1,39 @@
+{% extends "layout.html" %} {% block content %}
+<div class="row justify-content-center mt-5">
+  <div class="col-md-5">
+    <div class="card p-4">
+      <h3 class="text-center mb-4">Đăng Nhập</h3>
+      <form method="POST" action="/login">
+        <div class="mb-3">
+          <label for="username" class="form-label">Tên đăng nhập</label>
+          <input
+            type="text"
+            class="form-control"
+            id="username"
+            name="username"
+            required
+            placeholder="Nhập tên của bạn"
+          />
+        </div>
+        <div class="mb-3">
+          <label for="password" class="form-label">Mật khẩu</label>
+          <input
+            type="password"
+            class="form-control"
+            id="password"
+            name="password"
+            required
+            placeholder="Nhập mật khẩu"
+          />
+        </div>
+        <div class="d-grid gap-2">
+          <button type="submit" class="btn btn-primary">Đăng Nhập</button>
+        </div>
+        <div class="text-center mt-3">
+          <p>Chưa có tài khoản? <a href="/register">Đăng ký ngay</a></p>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
