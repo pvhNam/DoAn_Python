@@ -1,0 +1,114 @@
+/* Reset cơ bản */
+* { box-sizing: border-box; }
+body {
+    background-color: #000000; /* Nền đen tuyệt đối giống bảng điện cũ */
+    color: #d1d1d1;
+    font-family: Arial, Helvetica, sans-serif; /* Font cơ bản, dễ đọc nhất */
+    font-size: 12px;
+    margin: 0;
+    overflow-y: hidden; /* Ẩn thanh cuộn body để dùng scroll trong bảng */
+}
+
+/* Navbar siêu nhỏ */
+.navbar {
+    background-color: #202020 !important;
+    border-bottom: 1px solid #333;
+    height: 40px; /* Thấp xuống */
+    padding: 0 10px;
+}
+.navbar-brand { font-size: 14px; font-weight: bold; color: #f7941d !important; text-transform: uppercase; }
+.nav-link { color: #ccc !important; font-size: 12px; }
+
+/* Phần chỉ số Index (Trên cùng) */
+.index-bar {
+    background-color: #111;
+    border-bottom: 1px solid #333;
+    padding: 5px 10px;
+    display: flex;
+    gap: 15px;
+    overflow-x: auto;
+    height: 50px;
+}
+.index-item {
+    background: #000;
+    border: 1px solid #333;
+    border-radius: 3px;
+    padding: 3px 8px;
+    min-width: 140px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+.index-name { font-weight: bold; font-size: 11px; color: #aaa; }
+.index-val { font-weight: bold; font-size: 13px; }
+
+/* BẢNG GIÁ - Clone style VNDirect */
+.board-container {
+    height: calc(100vh - 90px); /* Trừ đi navbar và index bar */
+    overflow: auto;
+    background-color: #000;
+}
+
+.table-vnd {
+    width: 100%;
+    border-collapse: collapse; /* Đường kẻ dính liền nhau */
+    border-spacing: 0;
+}
+
+/* Header Bảng */
+.table-vnd thead th {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background-color: #333333; /* Màu xám đặc trưng của header */
+    color: #fff;
+    font-size: 11px;
+    font-weight: normal;
+    text-align: center;
+    border: 1px solid #444; /* Đường kẻ viền */
+    padding: 4px 2px;
+    white-space: nowrap;
+}
+
+/* Ô dữ liệu */
+.table-vnd tbody td {
+    background-color: #0b0b0b; /* Đen hơi xám nhẹ */
+    color: #fff;
+    font-size: 12px;
+    font-weight: bold; /* Số đậm */
+    padding: 4px 4px;
+    text-align: right;
+    border: 1px solid #222; /* Kẻ lưới rõ ràng */
+    vertical-align: middle;
+    font-family: Arial, sans-serif;
+}
+
+/* Cột Mã CK cố định */
+.col-sym {
+    position: sticky;
+    left: 0;
+    z-index: 5;
+    background-color: #0b0b0b !important;
+    text-align: left !important;
+    color: #00e6e6; /* Màu xanh lơ cho mã CK */
+    border-right: 2px solid #444 !important;
+    width: 70px;
+}
+
+/* Hover dòng */
+.table-vnd tbody tr:hover td { background-color: #333 !important; cursor: pointer; }
+.table-vnd tbody tr:hover .col-sym { background-color: #333 !important; }
+
+/* MÀU SẮC CHUẨN (Quan trọng nhất) */
+.c-up { color: #00ff00 !important; }      /* Xanh lá chanh */
+.c-down { color: #ff0000 !important; }    /* Đỏ thuần */
+.c-ref { color: #ffd900 !important; }     /* Vàng */
+.c-ceil { color: #ff00ff !important; }    /* Tím */
+.c-floor { color: #00cccc !important; }   /* Xanh lơ */
+.bg-highlight { background-color: #1a1a1a; } /* Nền cột khớp lệnh tối hơn chút */
+
+/* Scrollbar tối màu */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: #000; }
+::-webkit-scrollbar-thumb { background: #444; border: 1px solid #000; }
+::-webkit-scrollbar-corner { background: #000; }
