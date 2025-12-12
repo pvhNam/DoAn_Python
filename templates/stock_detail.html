@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% block title %}{{ symbol }} - Chi tiết{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-9">
+            <h3 class="text-white border-start border-4 border-warning ps-3">{{ symbol }} - Dữ liệu 1 Năm</h3>
+            <div style="background: #131722; padding: 15px; border-radius: 8px;">
+                <canvas id="candlestickChart" height="400" style="width: 100%;"></canvas>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card text-white">
+                <div class="card-header bg-primary fw-bold">ĐẶT LỆNH</div>
+                <div class="card-body">
+                    <div class="mb-3 text-center">
+                         <span class="text-muted">Giá hiện tại</span>
+                         <h2 class="text-up fw-bold">{{ "{:,.0f}".format(current) }}</h2>
+                    </div>
+                    <form action="/trade" method="post">
+                        <input type="hidden" name="symbol" value="{{ symbol }}">
+                        <div class="mb-3">
+                            <label class="form-label text-muted">Khối lượng</label>
+                            <input type="number" name="quantity" class="form-control bg-dark text-white border-secondary" placeholder="Ví dụ: 100" required>
+                        </div>
+                        <div class="d-grid gap-2">
+                            <button type="submit" name="action" value="buy" class="btn btn-success fw-bold">MUA (LONG)</button>
+                            <button type="submit" name="action" value="sell" class="btn btn-danger fw-bold">BÁN (SHORT)</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <div class="mt-3">
+                <a href="{{ url_for('market.market') }}" class="btn btn-outline-secondary w-100">← Quay lại bảng giá</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/luxon"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-chart-financial"></script>
+
+<script>
+    const rawData = {{ history|safe }};
+    
+    // Convert data for Chart.js
+    const chartData = rawData.map(d => ({
+        x: new Date(d.date).valueOf(),
+        o: d.open, h: d.high, l: d.low, c: d.close
+    }));
+
+    const ctx = document.getElementById('candlestickChart').getContext('2d');
+    
+    // Cấu hình Chart Dark Mode
+    Chart.defaults.color = '#8c909a';
+    Chart.defaults.borderColor = '#2a2e39';
+
+    new Chart(ctx, {
+        type: 'candlestick',
+        data: {
+            datasets: [{
+                label: '{{ symbol }}',
+                data: chartData,
+                color: { up: '#00f4b0', down: '#ff3838', unchanged: '#ffd600' },
+                borderColor: { up: '#00f4b0', down: '#ff3838', unchanged: '#ffd600' }
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                x: { grid: { display: false } },
+                y: { 
+                    grid: { color: '#2a2e39' },
+                    position: 'right' // Giá nằm bên phải giống TradingView
+                }
+            }
+        }
+    });
+</script>
+{% endblock %}
