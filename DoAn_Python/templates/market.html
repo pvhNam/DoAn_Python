@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+{% block title %}Bảng Giá Trực Tuyến{% endblock %}
+
+{% block content %}
+<div class="index-bar">
+    <div class="index-item item-up">
+        <span class="index-name">VN-INDEX</span>
+        <span class="index-val c-up">
+            1,254.45
+            <small style="font-size: 0.8em">▲ 5.20</small>
+        </span>
+    </div>
+
+    <div class="index-item item-down">
+        <span class="index-name">VN30</span>
+        <span class="index-val c-down">
+            1,280.10
+            <small style="font-size: 0.8em">▼ 2.50</small>
+        </span>
+    </div>
+
+    <div class="index-item item-ref">
+        <span class="index-name">HNX-INDEX</span>
+        <span class="index-val c-ref">
+            240.00
+            <small style="font-size: 0.8em">■ 0.00</small>
+        </span>
+    </div>
+
+    <div class="index-item item-up">
+        <span class="index-name">UPCOM</span>
+        <span class="index-val c-up">
+            98.2
+            <small style="font-size: 0.8em">▲ 0.5</small>
+        </span>
+    </div>
+
+    <div class="index-item item-down">
+        <span class="index-name">DOW JONES</span>
+        <span class="index-val c-down">
+            33,500
+            <small style="font-size: 0.8em">▼ 100</small>
+        </span>
+    </div>
+</div>
+
+<div class="board-container">
+    <table class="table-vnd">
+        <thead>
+            <tr>
+                <th rowspan="2">Mã CK</th>
+                <th rowspan="2">Trần</th>
+                <th rowspan="2">Sàn</th>
+                <th rowspan="2">TC</th>
+
+                <th colspan="6">Bên Mua</th>
+                <th colspan="3" style="background-color: #444;">Khớp Lệnh</th>
+                <th colspan="6">Bên Bán</th>
+
+                <th rowspan="2">Tổng KL</th>
+                <th colspan="3">Giá GD</th>
+            </tr>
+            <tr>
+                <th>Giá 3</th>
+                <th>KL 3</th>
+                <th>Giá 2</th>
+                <th>KL 2</th>
+                <th>Giá 1</th>
+                <th>KL 1</th>
+
+                <th style="background-color: #444;">Giá</th>
+                <th style="background-color: #444;">+/-</th>
+                <th style="background-color: #444;">KL</th>
+
+                <th>Giá 1</th>
+                <th>KL 1</th>
+                <th>Giá 2</th>
+                <th>KL 2</th>
+                <th>Giá 3</th>
+                <th>KL 3</th>
+
+                <th>Cao</th>
+                <th>TB</th>
+                <th>Thấp</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for s in stocks %}
+
+            {% set color = 'c-ref' %}
+            {% if s.price > s.ref %}{% set color = 'c-up' %}
+            {% elif s.price < s.ref %}{% set color='c-down' %} {% elif s.price==s.ceil %}{% set color='c-ceil' %} {%
+                elif s.price==s.floor %}{% set color='c-floor' %} {% endif %} <tr
+                onclick="window.location.href='/stock/{{ s.symbol }}'">
+                <td class="col-sym {{ color }}">{{ s.symbol }}</td>
+                <td class="c-ceil">{{ "{:,.2f}".format(s.ceil/1000) }}</td>
+                <td class="c-floor">{{ "{:,.2f}".format(s.floor/1000) }}</td>
+                <td class="c-ref">{{ "{:,.2f}".format(s.ref/1000) }}</td>
+
+                <td class="{{ color }}">{{ "{:,.2f}".format((s.price - 100)/1000) }}</td>
+                <td>{{ "{:,}".format(s.vol_fake * 2) }}</td>
+                <td class="{{ color }}">{{ "{:,.2f}".format((s.price - 50)/1000) }}</td>
+                <td>{{ "{:,}".format(s.vol_fake * 5) }}</td>
+                <td class="{{ color }}">{{ "{:,.2f}".format((s.price - 10)/1000) }}</td>
+                <td>{{ "{:,}".format(s.vol_fake * 10) }}</td>
+
+                <td class="{{ color }}" style="background-color: #1a1a1a;">{{ "{:,.2f}".format(s.price/1000) }}</td>
+                <td class="{{ color }}" style="background-color: #1a1a1a;">{{ "{:,.2f}".format((s.price - s.ref)/1000)
+                    }}</td>
+                <td class="{{ color }}" style="background-color: #1a1a1a;">{{ "{:,}".format(s.vol_fake * 20) }}</td>
+
+                <td class="{{ color }}">{{ "{:,.2f}".format((s.price + 10)/1000) }}</td>
+                <td>{{ "{:,}".format(s.vol_fake * 8) }}</td>
+                <td class="{{ color }}">{{ "{:,.2f}".format((s.price + 50)/1000) }}</td>
+                <td>{{ "{:,}".format(s.vol_fake * 4) }}</td>
+                <td class="{{ color }}">{{ "{:,.2f}".format((s.price + 100)/1000) }}</td>
+                <td>{{ "{:,}".format(s.vol_fake * 2) }}</td>
+
+                <td>{{ "{:,}".format(s.total_vol) }}</td>
+
+                <td class="c-ceil">{{ "{:,.2f}".format((s.price + 200)/1000) }}</td>
+                <td class="c-ref">{{ "{:,.2f}".format(s.price/1000) }}</td>
+                <td class="c-floor">{{ "{:,.2f}".format((s.price - 200)/1000) }}</td>
+                </tr>
+                {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
