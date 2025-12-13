@@ -1,28 +1,28 @@
 /* Reset cơ bản */
 * { box-sizing: border-box; }
 body {
-    background-color: #000000; /* Nền đen tuyệt đối giống bảng điện cũ */
+    background-color: #0b0e11; /* Đổi sang đen xanh nhẹ kiểu app hiện đại cho đỡ mỏi mắt hơn đen tuyền */
     color: #d1d1d1;
-    font-family: Arial, Helvetica, sans-serif; /* Font cơ bản, dễ đọc nhất */
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
     font-size: 12px;
     margin: 0;
-    overflow-y: hidden; /* Ẩn thanh cuộn body để dùng scroll trong bảng */
+    overflow-y: auto; /* Cho phép cuộn để không lỗi trang Login */
 }
 
-/* Navbar siêu nhỏ */
+/* Navbar */
 .navbar {
-    background-color: #202020 !important;
-    border-bottom: 1px solid #333;
-    height: 40px; /* Thấp xuống */
+    background-color: #181a20 !important;
+    border-bottom: 1px solid #2a2e39;
+    height: 40px;
     padding: 0 10px;
 }
-.navbar-brand { font-size: 14px; font-weight: bold; color: #f7941d !important; text-transform: uppercase; }
-.nav-link { color: #ccc !important; font-size: 12px; }
+.navbar-brand { font-size: 14px; font-weight: bold; color: #fcd535 !important; text-transform: uppercase; }
+.nav-link { color: #848e9c !important; font-size: 12px; }
 
-/* Phần chỉ số Index (Trên cùng) */
+/* Index Bar */
 .index-bar {
-    background-color: #111;
-    border-bottom: 1px solid #333;
+    background-color: #0b0e11;
+    border-bottom: 1px solid #2a2e39;
     padding: 5px 10px;
     display: flex;
     gap: 15px;
@@ -30,28 +30,28 @@ body {
     height: 50px;
 }
 .index-item {
-    background: #000;
-    border: 1px solid #333;
-    border-radius: 3px;
-    padding: 3px 8px;
+    background: #131722;
+    border: 1px solid #2a2e39;
+    border-radius: 4px;
+    padding: 3px 10px;
     min-width: 140px;
     display: flex;
     flex-direction: column;
     justify-content: center;
 }
-.index-name { font-weight: bold; font-size: 11px; color: #aaa; }
-.index-val { font-weight: bold; font-size: 13px; }
+.index-name { font-weight: 600; font-size: 11px; color: #848e9c; }
+.index-val { font-weight: bold; font-size: 13px; font-family: 'Arial', sans-serif; }
 
-/* BẢNG GIÁ - Clone style VNDirect */
+/* BẢNG GIÁ */
 .board-container {
-    height: calc(100vh - 90px); /* Trừ đi navbar và index bar */
+    height: calc(100vh - 90px);
     overflow: auto;
-    background-color: #000;
+    background-color: #0b0e11;
 }
 
 .table-vnd {
     width: 100%;
-    border-collapse: collapse; /* Đường kẻ dính liền nhau */
+    border-collapse: separate; /* Dùng separate để sticky hoạt động tốt hơn */
     border-spacing: 0;
 }
 
@@ -60,27 +60,38 @@ body {
     position: sticky;
     top: 0;
     z-index: 10;
-    background-color: #333333; /* Màu xám đặc trưng của header */
-    color: #fff;
+    background-color: #181a20;
+    color: #848e9c;
     font-size: 11px;
-    font-weight: normal;
+    font-weight: 600;
     text-align: center;
-    border: 1px solid #444; /* Đường kẻ viền */
-    padding: 4px 2px;
+    border-bottom: 1px solid #2a2e39;
+    border-right: 1px solid #2a2e39;
+    padding: 6px 4px;
     white-space: nowrap;
+}
+
+/* Fix góc chết trên cùng bên trái */
+.table-vnd thead th:first-child {
+    position: sticky;
+    left: 0;
+    z-index: 20;
+    background-color: #181a20;
+    border-right: 1px solid #2a2e39;
 }
 
 /* Ô dữ liệu */
 .table-vnd tbody td {
-    background-color: #0b0b0b; /* Đen hơi xám nhẹ */
-    color: #fff;
-    font-size: 12px;
-    font-weight: bold; /* Số đậm */
-    padding: 4px 4px;
+    background-color: #0b0e11;
+    color: #eaecef;
+    font-size: 13px; /* Tăng nhẹ cho dễ đọc */
+    font-weight: 500;
+    padding: 6px 4px;
     text-align: right;
-    border: 1px solid #222; /* Kẻ lưới rõ ràng */
+    border-bottom: 1px solid #1e2329;
+    border-right: 1px solid #1e2329;
     vertical-align: middle;
-    font-family: Arial, sans-serif;
+    font-family: 'Arial', sans-serif; /* Số dùng Arial cho rõ nét */
 }
 
 /* Cột Mã CK cố định */
@@ -88,27 +99,40 @@ body {
     position: sticky;
     left: 0;
     z-index: 5;
-    background-color: #0b0b0b !important;
+    background-color: #0b0e11 !important;
     text-align: left !important;
-    color: #00e6e6; /* Màu xanh lơ cho mã CK */
-    border-right: 2px solid #444 !important;
-    width: 70px;
+    font-weight: bold;
+    border-right: 1px solid #2a2e39 !important;
+    width: 80px;
+    padding-left: 8px !important;
 }
 
 /* Hover dòng */
-.table-vnd tbody tr:hover td { background-color: #333 !important; cursor: pointer; }
-.table-vnd tbody tr:hover .col-sym { background-color: #333 !important; }
+.table-vnd tbody tr:hover td { background-color: #2a2e39 !important; cursor: pointer; }
+.table-vnd tbody tr:hover .col-sym { background-color: #2a2e39 !important; }
 
-/* MÀU SẮC CHUẨN (Quan trọng nhất) */
-.c-up { color: #00ff00 !important; }      /* Xanh lá chanh */
-.c-down { color: #ff0000 !important; }    /* Đỏ thuần */
-.c-ref { color: #ffd900 !important; }     /* Vàng */
-.c-ceil { color: #ff00ff !important; }    /* Tím */
-.c-floor { color: #00cccc !important; }   /* Xanh lơ */
-.bg-highlight { background-color: #1a1a1a; } /* Nền cột khớp lệnh tối hơn chút */
+/* MÀU SẮC ĐỒNG BỘ (Style hiện đại) */
+.c-up, .text-up { color: #0ecb81 !important; }
+.c-down, .text-down { color: #f6465d !important; }
+.c-ref, .text-ref { color: #fcd535 !important; }
+.c-ceil, .text-ceil { color: #c02db5 !important; }
+.c-floor, .text-floor { color: #23e8e8 !important; }
 
-/* Scrollbar tối màu */
-::-webkit-scrollbar { width: 10px; height: 10px; }
-::-webkit-scrollbar-track { background: #000; }
-::-webkit-scrollbar-thumb { background: #444; border: 1px solid #000; }
-::-webkit-scrollbar-corner { background: #000; }
+.bg-highlight { background-color: #131722; }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: #0b0e11; }
+::-webkit-scrollbar-thumb { background: #2a2e39; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #474d57; }
+
+/* --- STYLE CHO TRANG CHI TIẾT --- */
+.bg-dark-panel { background-color: #181a20; border-left: 1px solid #2a2e39; }
+.btn-tab { background: transparent; border: none; color: #848e9c; border-bottom: 2px solid transparent; transition: 0.3s; }
+.btn-tab:hover { color: #fff; background: #2a2e39; }
+.btn-tab.active { color: #fff; border-bottom: 2px solid #fcd535; background: #2b3139; }
+.bg-input { background-color: #2a2e39; border: 1px solid #474d57; transition: 0.2s; }
+.bg-input:focus-within { border-color: #fcd535; }
+.percent-badge { cursor: pointer; background: #2a2e39; padding: 2px 8px; border-radius: 2px; border: 1px solid #474d57; transition: 0.2s; }
+.percent-badge:hover { border-color: #fcd535; color: #fcd535; }
+#tv-chart { cursor: crosshair; }
