@@ -1,86 +1,270 @@
-{% extends "base.html" %}
-{% block title %}{{ symbol }} - Chi tiết{% endblock %}
+{% extends "base.html" %} {% block title %}{{ symbol }} - Trading Terminal{%
+endblock %} {% block content %}
+<div class="container-fluid p-0">
+  <div class="row g-0" style="height: calc(100vh - 50px)">
+    <div class="col-md-9 border-end border-secondary position-relative">
+      <div
+        class="chart-header p-2 d-flex align-items-center gap-3"
+        style="background: #131722; border-bottom: 1px solid #2a2e39"
+      >
+        <h4 class="m-0 fw-bold text-warning">{{ symbol }}</h4>
+        <span class="text-white fs-5">{{ "{:,.0f}".format(current) }}</span>
+        {% set change = current - history[-1].close if history else 0 %}
+        <span class="{{ 'text-up' if change >= 0 else 'text-down' }}">
+          {{ "{:+,.0f}".format(change) }}
+        </span>
+      </div>
 
-{% block content %}
-<div class="container mt-4">
-    <div class="row">
-        <div class="col-md-9">
-            <h3 class="text-white border-start border-4 border-warning ps-3">{{ symbol }} - Dữ liệu 1 Năm</h3>
-            <div style="background: #131722; padding: 15px; border-radius: 8px;">
-                <canvas id="candlestickChart" height="400" style="width: 100%;"></canvas>
-            </div>
-        </div>
-
-        <div class="col-md-3">
-            <div class="card text-white">
-                <div class="card-header bg-primary fw-bold">ĐẶT LỆNH</div>
-                <div class="card-body">
-                    <div class="mb-3 text-center">
-                         <span class="text-muted">Giá hiện tại</span>
-                         <h2 class="text-up fw-bold">{{ "{:,.0f}".format(current) }}</h2>
-                    </div>
-                    <form action="/trade" method="post">
-                        <input type="hidden" name="symbol" value="{{ symbol }}">
-                        <div class="mb-3">
-                            <label class="form-label text-muted">Khối lượng</label>
-                            <input type="number" name="quantity" class="form-control bg-dark text-white border-secondary" placeholder="Ví dụ: 100" required>
-                        </div>
-                        <div class="d-grid gap-2">
-                            <button type="submit" name="action" value="buy" class="btn btn-success fw-bold">MUA (LONG)</button>
-                            <button type="submit" name="action" value="sell" class="btn btn-danger fw-bold">BÁN (SHORT)</button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-            
-            <div class="mt-3">
-                <a href="{{ url_for('market.market') }}" class="btn btn-outline-secondary w-100">← Quay lại bảng giá</a>
-            </div>
-        </div>
+      <div id="tv-chart" style="width: 100%; height: calc(100% - 50px)"></div>
     </div>
+
+    <div class="col-md-3 bg-dark-panel d-flex flex-column">
+      <div class="order-tabs d-flex border-bottom border-secondary">
+        <button
+          class="btn-tab active w-50 py-3 fw-bold text-up"
+          onclick="setSide('buy')"
+        >
+          MUA (LONG)
+        </button>
+        <button
+          class="btn-tab w-50 py-3 fw-bold text-down"
+          onclick="setSide('sell')"
+        >
+          BÁN (SHORT)
+        </button>
+      </div>
+
+      <div class="p-3 flex-grow-1">
+        <form action="/trade" method="post" id="tradeForm">
+          <input type="hidden" name="symbol" value="{{ symbol }}" />
+          <input type="hidden" name="action" id="actionInput" value="buy" />
+
+          <div class="d-flex justify-content-between mb-2 text-secondary small">
+            <span>Sức mua:</span>
+            <span class="text-white fw-bold"
+              >{{ "{:,.0f}".format(current_user.balance) }} ₫</span
+            >
+          </div>
+
+          <div class="mb-3">
+            <label class="text-secondary small mb-1">Giá đặt (VNĐ)</label>
+            <div class="input-group bg-input rounded">
+              <input
+                type="text"
+                class="form-control bg-transparent border-0 text-white fw-bold"
+                value="{{ '{:,.0f}'.format(current) }}"
+                readonly
+              />
+              <span class="input-group-text bg-transparent border-0 text-muted"
+                >VNĐ</span
+              >
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="text-secondary small mb-1">Khối lượng</label>
+            <div class="input-group bg-input rounded border border-secondary">
+              <button
+                type="button"
+                class="btn btn-outline-secondary border-0"
+                onclick="adjustQty(-100)"
+              >
+                -
+              </button>
+              <input
+                type="number"
+                name="quantity"
+                id="qtyInput"
+                class="form-control bg-transparent border-0 text-white text-center fw-bold"
+                placeholder="0"
+                step="100"
+                min="100"
+                required
+                oninput="calcTotal()"
+              />
+              <button
+                type="button"
+                class="btn btn-outline-secondary border-0"
+                onclick="adjustQty(100)"
+              >
+                +
+              </button>
+            </div>
+          </div>
+
+          <div class="mb-4">
+            <div class="d-flex justify-content-between text-muted small mb-1">
+              <span onclick="setQtyPercent(0.25)" class="percent-badge"
+                >25%</span
+              >
+              <span onclick="setQtyPercent(0.5)" class="percent-badge"
+                >50%</span
+              >
+              <span onclick="setQtyPercent(0.75)" class="percent-badge"
+                >75%</span
+              >
+              <span onclick="setQtyPercent(1)" class="percent-badge">100%</span>
+            </div>
+          </div>
+
+          <div
+            class="d-flex justify-content-between align-items-center mb-4 p-2 rounded"
+            style="background: #1e2026"
+          >
+            <span class="text-secondary">Tổng giá trị:</span>
+            <span class="fs-5 fw-bold text-white" id="totalVal">0</span>
+          </div>
+
+          <button
+            type="submit"
+            id="submitBtn"
+            class="btn btn-success w-100 py-3 fw-bold fs-5 text-uppercase shadow-lg"
+          >
+            MUA {{ symbol }}
+          </button>
+        </form>
+      </div>
+
+      <div class="p-3 border-top border-secondary text-center">
+        <a
+          href="{{ url_for('market.market') }}"
+          class="text-decoration-none text-muted small"
+          >← Quay lại bảng giá</a
+        >
+      </div>
+    </div>
+  </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/luxon"></script>
-<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon"></script>
-<script src="https://cdn.jsdelivr.net/npm/chartjs-chart-financial"></script>
+<script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
 
 <script>
-    const rawData = {{ history|safe }};
-    
-    // Convert data for Chart.js
-    const chartData = rawData.map(d => ({
-        x: new Date(d.date).valueOf(),
-        o: d.open, h: d.high, l: d.low, c: d.close
-    }));
+  // --- 1. CẤU HÌNH BIỂU ĐỒ ---
+  const chartOptions = {
+      layout: {
+          textColor: '#d1d4dc',
+          background: { type: 'solid', color: '#131722' }
+      },
+      grid: {
+          vertLines: { color: '#2a2e39' },
+          horzLines: { color: '#2a2e39' }
+      },
+      rightPriceScale: {
+          borderColor: '#2a2e39',
+          scaleMargins: { top: 0.1, bottom: 0.2 },
+      },
+      timeScale: {
+          borderColor: '#2a2e39',
+          timeVisible: true,
+          secondsVisible: false,
+      },
+      handleScale: {
+          axisPressedMouseMove: { time: true, price: true },
+      },
+  };
 
-    const ctx = document.getElementById('candlestickChart').getContext('2d');
-    
-    // Cấu hình Chart Dark Mode
-    Chart.defaults.color = '#8c909a';
-    Chart.defaults.borderColor = '#2a2e39';
+  const container = document.getElementById('tv-chart');
+  const chart = LightweightCharts.createChart(container, chartOptions);
 
-    new Chart(ctx, {
-        type: 'candlestick',
-        data: {
-            datasets: [{
-                label: '{{ symbol }}',
-                data: chartData,
-                color: { up: '#00f4b0', down: '#ff3838', unchanged: '#ffd600' },
-                borderColor: { up: '#00f4b0', down: '#ff3838', unchanged: '#ffd600' }
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: {
-                x: { grid: { display: false } },
-                y: { 
-                    grid: { color: '#2a2e39' },
-                    position: 'right' // Giá nằm bên phải giống TradingView
-                }
-            }
-        }
-    });
+  const candlestickSeries = chart.addCandlestickSeries({
+      upColor: '#089981', downColor: '#f23645', borderVisible: false, wickUpColor: '#089981', wickDownColor: '#f23645',
+  });
+
+  const volumeSeries = chart.addHistogramSeries({
+      color: '#26a69a',
+      priceFormat: { type: 'volume' },
+      priceScaleId: '',
+  });
+  chart.priceScale('').applyOptions({ scaleMargins: { top: 0.8, bottom: 0 } });
+
+  // --- 2. XỬ LÝ DỮ LIỆU ---
+  let rawData = {{ history|tojson }};
+
+  // DEBUG: Kiểm tra dữ liệu ngay lập tức
+  if (!rawData || rawData.length === 0) {
+      alert("⚠️ Lỗi: Không có dữ liệu lịch sử từ CafeF!\nCode Python trả về danh sách rỗng.");
+  } else {
+      console.log("Dữ liệu nhận được:", rawData[0]); // Xem trong Console (F12)
+  }
+
+  function convertDate(dateStr) {
+      // Chuyển từ dd/mm/yyyy -> yyyy-mm-dd
+      if (!dateStr) return null;
+      const parts = dateStr.split('/');
+      if (parts.length === 3) return `${parts[2]}-${parts[1]}-${parts[0]}`;
+      return dateStr;
+  }
+
+  const candleData = [];
+  const volumeData = [];
+
+  if (rawData && rawData.length > 0) {
+      rawData.forEach(d => {
+          let fixedDate = convertDate(d.date);
+          // Chỉ thêm nếu ngày hợp lệ
+          if (fixedDate) {
+              candleData.push({ time: fixedDate, open: d.open, high: d.high, low: d.low, close: d.close });
+              volumeData.push({
+                  time: fixedDate,
+                  value: d.volume,
+                  color: d.close >= d.open ? 'rgba(8, 153, 129, 0.5)' : 'rgba(242, 54, 69, 0.5)'
+              });
+          }
+      });
+
+      // Sắp xếp thời gian tăng dần
+      candleData.sort((a, b) => new Date(a.time) - new Date(b.time));
+      volumeData.sort((a, b) => new Date(a.time) - new Date(b.time));
+
+      candlestickSeries.setData(candleData);
+      volumeSeries.setData(volumeData);
+      chart.timeScale().fitContent();
+  }
+
+  // Resize tự động
+  window.addEventListener('resize', () => {
+      chart.resize(container.clientWidth, container.clientHeight);
+  });
+
+  // --- 3. XỬ LÝ FORM ĐẶT LỆNH ---
+  const currentPrice = {{ current }};
+  const balance = {{ current_user.balance }};
+  const qtyInput = document.getElementById('qtyInput');
+  const totalDisplay = document.getElementById('totalVal');
+  const btn = document.getElementById('submitBtn');
+  const actionInput = document.getElementById('actionInput');
+
+  function setSide(side) {
+      actionInput.value = side;
+      document.querySelectorAll('.btn-tab').forEach(t => t.classList.remove('active'));
+      if(side === 'buy') {
+          document.querySelector('.btn-tab:first-child').classList.add('active');
+          btn.className = "btn btn-success w-100 py-3 fw-bold fs-5 text-uppercase shadow-lg";
+          btn.innerText = "MUA {{ symbol }}";
+      } else {
+          document.querySelector('.btn-tab:last-child').classList.add('active');
+          btn.className = "btn btn-danger w-100 py-3 fw-bold fs-5 text-uppercase shadow-lg";
+          btn.innerText = "BÁN {{ symbol }}";
+      }
+  }
+  // ... (Giữ nguyên các hàm calcTotal, adjustQty, setQtyPercent cũ) ...
+  function calcTotal() {
+      const qty = parseInt(qtyInput.value) || 0;
+      const total = qty * currentPrice;
+      totalDisplay.innerText = new Intl.NumberFormat('vi-VN').format(total) + ' ₫';
+      if (actionInput.value === 'buy' && total > balance) totalDisplay.classList.add('text-danger');
+      else totalDisplay.classList.remove('text-danger');
+  }
+  function adjustQty(delta) {
+      let val = parseInt(qtyInput.value) || 0;
+      qtyInput.value = Math.max(0, val + delta);
+      calcTotal();
+  }
+  function setQtyPercent(pct) {
+      if(actionInput.value === 'buy') {
+          qtyInput.value = Math.floor((balance * pct) / currentPrice / 100) * 100;
+      } else { qtyInput.value = 1000; }
+      calcTotal();
+  }
 </script>
 {% endblock %}
