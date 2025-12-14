@@ -10,43 +10,57 @@ HEADERS = {
 }
 
 def get_price_history(symbol, days=365):
-    """
-    Lấy dữ liệu thật từ CafeF.
-    """
     url = "https://s.cafef.vn/Ajax/PageNew/DataHistory/PriceHistory.ashx"
-    params = {
-        "Symbol": symbol,
-        "PageIndex": 1,
-        "PageSize": days
-    }
+    params = {"Symbol": symbol, "PageIndex": 1, "PageSize": days}
     
     try:
-        # Gọi API CafeF
         r = requests.get(url, params=params, headers=HEADERS, timeout=10)
         data = r.json()
         
-        # In ra để kiểm tra xem CafeF trả về gì (Debug)
-        # print(f"API Debug {symbol}: {str(data)[:100]}...") 
-
         if "Data" in data and "Data" in data["Data"]:
             raw_data = data["Data"]["Data"]
             result = []
+            
             for row in raw_data:
-                # Xử lý vấn đề CafeF đổi tên key liên tục
                 vol = 0
-                if "KLKhopLenh" in row: vol = row["KLKhopLenh"]
-                elif "Volume" in row: vol = row["Volume"]
-                elif "khoi_luong" in row: vol = row["khoi_luong"]
+                # Danh sách key ưu tiên (cập nhật mới nhất)
+                keys = ["nmVolume", "nmTotalVolume", "KlgiaoDichKhopLenh", "TotalVolume", "Volume", "KLKhopLenh"]
+    
+                for k in keys:
+                    if k in row and row[k] is not None:
+                        try:
+                            # Xử lý cả số lẫn chuỗi "1,234.00"
+                            v_str = str(row[k]).split('.')[0] # Bỏ phần thập phân nếu có
+                            v_clean = v_str.replace(",", "").replace(".", "")
+                            if v_clean.isdigit():
+                                val = int(v_clean)
+                                if val > 0:
+                                    vol = val
+                                    break
+                        except:
+                            pass
                 
+                # Fallback: Nếu vẫn = 0, thử tìm bất kỳ key nào có chữ "Volume" hoặc "KL"
+                if vol == 0:
+                    for k, v in row.items():
+                        if ("Volume" in k or "KL" in k) and isinstance(v, (int, float, str)):
+                            try:
+                                v_clean = int(str(v).replace(",", "").replace(".", ""))
+                                if v_clean > 0:
+                                    vol = v_clean
+                                    break
+                            except:
+                                pass
+
                 result.append({
-                    "date": row["Ngay"], # dd/mm/yyyy
+                    "date": row["Ngay"], 
                     "open": row["GiaMoCua"] * 1000,
                     "high": row["GiaCaoNhat"] * 1000,
                     "low": row["GiaThapNhat"] * 1000,
                     "close": row["GiaDongCua"] * 1000,
-                    "volume": vol
+                    "volume": vol 
                 })
-            return result[::-1] # Đảo ngược: Cũ -> Mới
+            return result[::-1]
             
     except Exception as e:
         print(f"❌ Lỗi lấy lịch sử {symbol}: {e}")
@@ -56,14 +70,12 @@ def get_price_history(symbol, days=365):
 def get_current_price(symbol):
     """
     Lấy giá hiện tại từ lịch sử (lấy cây nến mới nhất).
-    Tuyệt đối KHÔNG random.
     """
     try:
         # Lấy 1 ngày dữ liệu mới nhất
         history = get_price_history(symbol, days=1)
         if history and len(history) > 0:
             real_price = history[-1]["close"]
-            print(f"✅ {symbol}: {real_price:,.0f} VNĐ") # In ra terminal để xác nhận
             return real_price
     except Exception as e:
         print(f"❌ Lỗi lấy giá {symbol}: {e}")
