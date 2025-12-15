@@ -1,0 +1,138 @@
+/* Reset cơ bản */
+* { box-sizing: border-box; }
+body {
+    background-color: #0b0e11; /* Đổi sang đen xanh nhẹ kiểu app hiện đại cho đỡ mỏi mắt hơn đen tuyền */
+    color: #d1d1d1;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+    font-size: 12px;
+    margin: 0;
+    overflow-y: auto; /* Cho phép cuộn để không lỗi trang Login */
+}
+
+/* Navbar */
+.navbar {
+    background-color: #181a20 !important;
+    border-bottom: 1px solid #2a2e39;
+    height: 40px;
+    padding: 0 10px;
+}
+.navbar-brand { font-size: 14px; font-weight: bold; color: #fcd535 !important; text-transform: uppercase; }
+.nav-link { color: #848e9c !important; font-size: 12px; }
+
+/* Index Bar */
+.index-bar {
+    background-color: #0b0e11;
+    border-bottom: 1px solid #2a2e39;
+    padding: 5px 10px;
+    display: flex;
+    gap: 15px;
+    overflow-x: auto;
+    height: 50px;
+}
+.index-item {
+    background: #131722;
+    border: 1px solid #2a2e39;
+    border-radius: 4px;
+    padding: 3px 10px;
+    min-width: 140px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+.index-name { font-weight: 600; font-size: 11px; color: #848e9c; }
+.index-val { font-weight: bold; font-size: 13px; font-family: 'Arial', sans-serif; }
+
+/* BẢNG GIÁ */
+.board-container {
+    height: calc(100vh - 90px);
+    overflow: auto;
+    background-color: #0b0e11;
+}
+
+.table-vnd {
+    width: 100%;
+    border-collapse: separate; /* Dùng separate để sticky hoạt động tốt hơn */
+    border-spacing: 0;
+}
+
+/* Header Bảng */
+.table-vnd thead th {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background-color: #181a20;
+    color: #848e9c;
+    font-size: 11px;
+    font-weight: 600;
+    text-align: center;
+    border-bottom: 1px solid #2a2e39;
+    border-right: 1px solid #2a2e39;
+    padding: 6px 4px;
+    white-space: nowrap;
+}
+
+/* Fix góc chết trên cùng bên trái */
+.table-vnd thead th:first-child {
+    position: sticky;
+    left: 0;
+    z-index: 20;
+    background-color: #181a20;
+    border-right: 1px solid #2a2e39;
+}
+
+/* Ô dữ liệu */
+.table-vnd tbody td {
+    background-color: #0b0e11;
+    color: #eaecef;
+    font-size: 13px; /* Tăng nhẹ cho dễ đọc */
+    font-weight: 500;
+    padding: 6px 4px;
+    text-align: right;
+    border-bottom: 1px solid #1e2329;
+    border-right: 1px solid #1e2329;
+    vertical-align: middle;
+    font-family: 'Arial', sans-serif; /* Số dùng Arial cho rõ nét */
+}
+
+/* Cột Mã CK cố định */
+.col-sym {
+    position: sticky;
+    left: 0;
+    z-index: 5;
+    background-color: #0b0e11 !important;
+    text-align: left !important;
+    font-weight: bold;
+    border-right: 1px solid #2a2e39 !important;
+    width: 80px;
+    padding-left: 8px !important;
+}
+
+/* Hover dòng */
+.table-vnd tbody tr:hover td { background-color: #2a2e39 !important; cursor: pointer; }
+.table-vnd tbody tr:hover .col-sym { background-color: #2a2e39 !important; }
+
+/* MÀU SẮC ĐỒNG BỘ (Style hiện đại) */
+.c-up, .text-up { color: #0ecb81 !important; }
+.c-down, .text-down { color: #f6465d !important; }
+.c-ref, .text-ref { color: #fcd535 !important; }
+.c-ceil, .text-ceil { color: #c02db5 !important; }
+.c-floor, .text-floor { color: #23e8e8 !important; }
+
+.bg-highlight { background-color: #131722; }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: #0b0e11; }
+::-webkit-scrollbar-thumb { background: #2a2e39; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #474d57; }
+
+/* --- STYLE CHO TRANG CHI TIẾT --- */
+.bg-dark-panel { background-color: #181a20; border-left: 1px solid #2a2e39; }
+.btn-tab { background: transparent; border: none; color: #848e9c; border-bottom: 2px solid transparent; transition: 0.3s; }
+.btn-tab:hover { color: #fff; background: #2a2e39; }
+.btn-tab.active { color: #fff; border-bottom: 2px solid #fcd535; background: #2b3139; }
+.bg-input { background-color: #2a2e39; border: 1px solid #474d57; transition: 0.2s; }
+.bg-input:focus-within { border-color: #fcd535; }
+.percent-badge { cursor: pointer; background: #2a2e39; padding: 2px 8px; border-radius: 2px; border: 1px solid #474d57; transition: 0.2s; }
+.percent-badge:hover { border-color: #fcd535; color: #fcd535; }
+#tv-chart { cursor: crosshair; }
