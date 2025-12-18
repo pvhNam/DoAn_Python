@@ -168,11 +168,7 @@ def portfolio():
     cursor.close()
 
     data = []
-    
-    # Chuẩn bị dữ liệu vẽ biểu đồ
-    chart_labels = []
-    chart_values = []
-    
+    # Ép kiểu float ngay từ đầu để tránh lỗi TypeError khi cộng với market_val
     total_asset = float(current_user.balance) 
     
     for p in ports:
@@ -195,10 +191,6 @@ def portfolio():
         
         total_asset += market_val
         
-        # Thêm dữ liệu vào list để vẽ biểu đồ
-        chart_labels.append(p["symbol"])
-        chart_values.append(market_val)
-
         data.append({
             "symbol": p["symbol"],
             "quantity": quantity,
@@ -207,16 +199,8 @@ def portfolio():
             "profit": profit,
             "percent": percent
         })
-
-    # Thêm phần "Tiền mặt" vào biểu đồ
-    chart_labels.append("Tiền mặt")
-    chart_values.append(float(current_user.balance))
         
-    return render_template("portfolio.html", 
-                           portfolio=data, 
-                           total_asset=total_asset,
-                           chart_labels=chart_labels, # <--- Mới
-                           chart_values=chart_values) # <--- Mới
+    return render_template("portfolio.html", portfolio=data, total_asset=total_asset)
 
 # --- 4. TRANG LỊCH SỬ GIAO DỊCH ---
 @trade_bp.route("/history")
