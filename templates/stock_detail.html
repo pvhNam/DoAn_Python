@@ -55,12 +55,21 @@ endblock %} {% block content %}
     >
       <div
         class="chart-header p-2 d-flex align-items-center gap-4 px-4"
+
         style="
           background: #131722;
           border-bottom: 1px solid #2a2e39;
           height: 50px;
         "
       >
+      <div class="d-flex align-items-center ms-4 border-start border-secondary ps-3">
+    <button onclick="runAI()" id="btn-ai" class="btn btn-sm btn-outline-info fw-bold" style="font-family: 'JetBrains Mono'">
+        <i class="bi bi-cpu"></i> AI DỰ BÁO
+    </button>
+    <span id="ai-result" class="ms-2 badge bg-dark border border-secondary text-muted" style="font-size: 0.85rem;">
+        Sẵn sàng
+    </span>
+</div>
         <h4 class="m-0 fw-bold text-warning">{{ symbol }}</h4>
 
         <div class="d-flex align-items-end gap-2">
@@ -505,5 +514,81 @@ endblock %} {% block content %}
 
     calcTotal(); // Tính lại tiền ngay
   }
+  // ==========================================
+    // 5. TÍNH NĂNG AI PREDICTION (Mới thêm)
+    // ==========================================
+    
+    // Tạo một Series mới cho đường dự đoán (Màu tím, nét đứt)
+    const predSeries = chart.addLineSeries({
+        color: '#d63031',     // Màu đỏ cam nổi bật
+        lineWidth: 2,
+        lineStyle: 2,         // 2 = Nét đứt (Dashed)
+        title: 'AI Forecast', // Tên hiển thị
+        crosshairMarkerVisible: true,
+    });
+
+    function runAI() {
+        const btn = document.getElementById('btn-ai');
+        const badge = document.getElementById('ai-result');
+        const symbol = "{{ symbol }}";
+
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Đang phân tích...';
+        
+        // Reset lại badge
+        badge.innerText = 'Đang đọc dữ liệu...';
+        badge.className = 'ms-2 badge bg-warning text-dark';
+
+        fetch(`/api/predict/${symbol}`)
+            .then(res => res.json())
+            .then(data => {
+                if(data.data && data.data.length > 0) {
+                    predSeries.setData(data.data);
+                    
+                    // 1. Cập nhật Badge (Ngắn gọn)
+                    badge.innerText = data.trend;
+                    if(data.trend.includes('TĂNG')) {
+                        badge.className = 'ms-2 badge bg-success text-white shadow';
+                    } else if (data.trend.includes('ĐI NGANG')) {
+                        badge.className = 'ms-2 badge bg-warning text-dark shadow';
+                    } else {
+                        badge.className = 'ms-2 badge bg-danger text-white shadow';
+                    }
+
+                    // 2. HIỂN THỊ LÝ DO CHI TIẾT (Mới)
+                    // Tạo (hoặc tìm) thẻ div để hiện lý do
+                    let reasonDiv = document.getElementById('ai-reason-box');
+                    if (!reasonDiv) {
+                        // Nếu chưa có thì tạo mới ngay dưới header chart
+                        const chartHeader = document.querySelector('.chart-header');
+                        reasonDiv = document.createElement('div');
+                        reasonDiv.id = 'ai-reason-box';
+                        reasonDiv.className = 'alert alert-info mt-0 mb-0 rounded-0 border-0 border-bottom border-secondary small';
+                        reasonDiv.style.backgroundColor = '#1e222d';
+                        reasonDiv.style.color = '#d1d4dc';
+                        // Chèn vào sau header
+                        chartHeader.parentNode.insertBefore(reasonDiv, chartHeader.nextSibling);
+                    }
+                    
+                    // Gán nội dung
+                    reasonDiv.innerHTML = `
+                        <strong class="text-info"><i class="bi bi-robot"></i> AI Phân Tích:</strong> 
+                        ${data.reason}
+                    `;
+
+                    chart.timeScale().fitContent();
+                } else {
+                    badge.innerText = 'Thiếu dữ liệu';
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                badge.innerText = 'Lỗi AI';
+            })
+            .finally(() => {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="bi bi-cpu"></i> AI DỰ BÁO';
+            });
+    }
 </script>
 {% endblock %}
