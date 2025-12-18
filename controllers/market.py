@@ -1,61 +1,76 @@
-from flask import Blueprint, render_template
-from flask_login import login_required
+import yfinance as yf
+from flask import Blueprint, render_template, request, flash, redirect, url_for
+from flask_login import login_required, current_user
 from utils.cafef import get_current_price
 import random
 import time
+from models.database import get_db
 
 market_bp = Blueprint("market", __name__)
+# --- ROUTE 1: CHI TIẾT CỔ PHIẾU ---
+# Link: /market/ACB
+@market_bp.route("/market/<symbol>")
+@login_required
+def stock_detail(symbol):
+    symbol = symbol.upper()
+    
+    # 1. Lấy giá hiện tại
+    current_price = get_current_price(symbol)
+    if current_price == 0:
+        current_price = 10000 
+    
+    # 2. Lấy dữ liệu lịch sử
+    history = []
+    try:
+        ticker = yf.Ticker(f"{symbol}.VN")
+        df = ticker.history(period="6mo") 
+        for index, row in df.iterrows():
+            history.append({
+                'date': index.strftime('%Y-%m-%d'),
+                'open': row['Open'],
+                'high': row['High'],
+                'low': row['Low'],
+                'close': row['Close'],
+                'volume': row['Volume']
+            })
+    except Exception as e:
+        print(f"Lỗi chart: {e}")
+        history = []
 
-# Danh sách các mã Bluechip
-STOCKS_LIST = ["ACB", "BID", "BVH", "CTG", "FPT", "GAS", "GVR", "HDB", "HPG", "MBB", "MSN", "MWG", "NVL", "PDR", "PLX", "PNJ", "POW", "SAB", "SSI", "STB", "TCB", "TPB", "VCB", "VHM", "VIB", "VIC", "VJC", "VNM", "VPB", "VRE"]
+    return render_template(
+        "stock_detail.html", 
+        symbol=symbol, 
+        current=current_price, 
+        history=history
+    )
 
+# --- ROUTE 2: DANH SÁCH THỊ TRƯỜNG ---
+# Link: /market
+# QUAN TRỌNG: Hàm này phải tồn tại để sửa lỗi BuildError
 @market_bp.route("/market")
 @login_required
 def market():
-    stock_data = []
-    print("--- Loading Bảng Giá Pro ---")
+    conn = get_db()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute("SELECT * FROM market_data")
+    db_rows = cursor.fetchall()
+    cursor.close()
     
-    # Lấy 10 mã đầu để demo cho nhanh (muốn full thì bỏ [:10])
-    for symbol in STOCKS_LIST[:15]: 
-        current_price = get_current_price(symbol)
+    stock_data = []
+    for row in db_rows:
+        price = float(row['price'])
+        vol_fake = random.randint(10, 500) * 10
         
-        # Nếu lỗi mạng hoặc API trả về 0, dùng giá mặc định fake để bảng không bị trắng
-        if current_price == 0: 
-            current_price = 20000 
-        
-        # LOGIC TÍNH TOÁN GIẢ LẬP ĐỂ HIỂN THỊ ĐỦ CỘT
-        # 1. Giá tham chiếu (Giả sử bằng giá hiện tại làm tròn)
-        ref_price = round(current_price, -2) 
-        
-        # 2. Tính Trần (Ceil) +7%, Sàn (Floor) -7% (Luật sàn HOSE)
-        ceil_price = ref_price * 1.07
-        floor_price = ref_price * 0.93
-        
-        # 3. Random khối lượng giả để bảng trông sinh động
-        vol_fake = random.randint(10, 500) * 10 
-        total_vol = random.randint(100000, 5000000)
-
-        # Đưa hết vào object để đẩy sang HTML
         stock_data.append({
-            "symbol": symbol,
-            "price": current_price,
-            "ref": ref_price,
-            "ceil": ceil_price,
-            "floor": floor_price,
-            "vol_fake": vol_fake,
-            "total_vol": total_vol
+            "symbol": row['symbol'],
+            "price": price,
+            "ref": float(row['ref_price']),
+            "ceil": float(row['ceil_price']),
+            "floor": float(row['floor_price']),
+            "total_vol": row['total_vol'],
+            "vol_fake": vol_fake, 
+            "buy_price_1": price - 50,
+            "buy_vol_1": vol_fake * 2,
         })
         
-        # Nghỉ xíu cho đỡ bị chặn
-        time.sleep(0.02)
-
     return render_template("market.html", stocks=stock_data)
-
-# ... Giữ nguyên hàm stock_detail cũ ...
-@market_bp.route("/stock/<symbol>")
-@login_required
-def stock_detail(symbol):
-    from utils.cafef import get_price_history # Import ở đây tránh vòng lặp
-    history = get_price_history(symbol, 365)
-    current = get_current_price(symbol)
-    return render_template("stock_detail.html", symbol=symbol, history=history, current=current)
