@@ -34,7 +34,7 @@ def process_dataframe(df, symbol, sheet_type, cursor, count_success):
             rows = df[df[first_col].astype(str).str.contains("Lợi nhuận sau thuế", case=False, na=False)]
             if not rows.empty:
                 row = rows.iloc[0]
-                print(f"      ✅ [KQKD] Tìm thấy Lợi nhuận của {symbol}")
+                print(f" [KQKD] Tìm thấy Lợi nhuận của {symbol}")
                 
                 for col in df.columns:
                     # Duyệt qua các cột Năm (2020, 2021...)
@@ -57,7 +57,7 @@ def process_dataframe(df, symbol, sheet_type, cursor, count_success):
             rows = df[df[first_col].astype(str).str.contains("Tổng tài sản", case=False, na=False)]
             if not rows.empty:
                 row = rows.iloc[0]
-                print(f"      ✅ [CDKT] Tìm thấy Tổng tài sản của {symbol}")
+                print(f" [CDKT] Tìm thấy Tổng tài sản của {symbol}")
                 
                 for col in df.columns:
                     if str(col).strip().isdigit() and int(str(col).strip()) > 2000:
@@ -74,7 +74,7 @@ def process_dataframe(df, symbol, sheet_type, cursor, count_success):
                             count_success[0] += 1
                             
     except Exception as e:
-        print(f"      ⚠️ Lỗi xử lý data: {e}")
+        print(f" Lỗi xử lý data: {e}")
 
 def import_fiinpro_v4():
     conn = get_db()
@@ -105,10 +105,9 @@ def import_fiinpro_v4():
                 break
         
         if not symbol: 
-            # print(f"⚠️ Bỏ qua: {filename} (Không rõ mã CK)")
             continue
 
-        print(f"\n📂 Đang quét: {filename} -> Mã: {symbol}")
+        print(f"\n Đang quét: {filename} -> Mã: {symbol}")
 
         try:
             # --- TRƯỜNG HỢP 1: FILE EXCEL (XLSX) ---
@@ -149,12 +148,12 @@ def import_fiinpro_v4():
                     process_dataframe(df, symbol, sheet_type, cursor, count_success)
 
         except Exception as e:
-            print(f"   ❌ Lỗi đọc file: {e}")
+            print(f"  Lỗi đọc file: {e}")
 
     conn.commit()
     cursor.close()
     conn.close()
-    print(f"\n🚀 HOÀN TẤT! Đã cập nhật thành công {count_success[0]} dữ liệu vào Database.")
+    print(f"\n HOÀN TẤT! Đã cập nhật thành công {count_success[0]} dữ liệu vào Database.")
 
 if __name__ == "__main__":
     with app.app_context():
