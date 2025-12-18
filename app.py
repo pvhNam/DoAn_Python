@@ -1,6 +1,6 @@
 from flask import Flask, redirect, url_for
 from flask_login import LoginManager
-from models.database import init_db, close_db, get_db 
+from models.database import init_db, close_db, get_db
 from models.user import get_user_by_id
 from utils.cafef import get_current_price
 import time
@@ -12,7 +12,7 @@ from controllers.trade import trade_bp
 app = Flask(__name__)
 app.secret_key = "vps_stock_secret_key_2025"
 
-# Cấu hình Login
+#  Login
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = "auth.login"
@@ -47,7 +47,7 @@ def update_market_data_startup():
         
         for symbol in symbols:
             try:
-                # Lấy giá hiện tại từ API
+                #Lấy giá hiện tại từ API
                 price = get_current_price(symbol)
                 if price == 0: price = 10000 
                 
@@ -57,6 +57,9 @@ def update_market_data_startup():
                 # Tính trần sàn (Biên độ 7% sàn HOSE)
                 ceil_price = ref_price * 1.07
                 floor_price = ref_price * 0.93
+                
+                # Volume giả lập
+                total_vol = 1500000 
                 
                 # Lưu ĐỦ 5 cột quan trọng vào DB
                 sql = """
