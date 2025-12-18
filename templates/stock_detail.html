@@ -3,21 +3,12 @@
 {% block content %}
 
 <style>
-  /* CSS cho Legend (Bảng thông số khi di chuột) */
   .chart-legend {
-    position: absolute;
-    top: 60px;
-    left: 12px;
-    z-index: 100;
-    font-family: "Roboto", sans-serif;
-    font-size: 12px;
-    line-height: 18px;
-    font-weight: 500;
-    color: #d1d4dc;
-    pointer-events: none;
-    background-color: rgba(19, 23, 34, 0.7);
-    padding: 6px;
-    border-radius: 4px;
+    position: absolute; top: 60px; left: 12px; z-index: 100;
+    font-family: "Roboto", sans-serif; font-size: 12px;
+    line-height: 18px; font-weight: 500; color: #d1d4dc;
+    pointer-events: none; background-color: rgba(19, 23, 34, 0.7);
+    padding: 6px; border-radius: 4px;
   }
   .legend-item { display: flex; gap: 10px; }
 </style>
@@ -91,39 +82,55 @@
       <div class="p-3 flex-grow-1 overflow-auto">
         <h5 class="text-white mb-3 text-uppercase border-bottom border-secondary pb-2">Đặt Lệnh</h5>
 
-        <form action="{{ url_for('trade.trade') }}" method="post" id="tradeForm">
-          <input type="hidden" name="symbol" value="{{ symbol }}" />
+        {% if current_user.is_authenticated %}
+            <form action="{{ url_for('trade.trade') }}" method="post" id="tradeForm">
+              <input type="hidden" name="symbol" value="{{ symbol }}" />
 
-          <div class="d-flex justify-content-between mb-2 p-2 rounded bg-black bg-opacity-25 border border-secondary">
-            <span class="text-secondary small">Sức mua:</span>
-            <span class="text-warning fw-bold">{{ "{:,.0f}".format(current_user.balance) }} ₫</span>
-          </div>
+              <div class="d-flex justify-content-between mb-2 p-2 rounded bg-black bg-opacity-25 border border-secondary">
+                <span class="text-secondary small">Sức mua:</span>
+                <span class="text-warning fw-bold">{{ "{:,.0f}".format(current_user.balance) }} ₫</span>
+              </div>
 
-          <div class="mb-3">
-            <label class="text-secondary small mb-1">Khối lượng</label>
-            <div class="input-group input-group-sm">
-              <button type="button" class="btn btn-outline-secondary" onclick="adjustQty(-100)">-</button>
-              <input type="number" name="quantity" id="qtyInput" class="form-control bg-dark border-secondary text-white text-center fw-bold" placeholder="0" step="100" min="100" required oninput="calcTotal()" />
-              <button type="button" class="btn btn-outline-secondary" onclick="adjustQty(100)">+</button>
+              <div class="mb-3">
+                <label class="text-secondary small mb-1">Khối lượng</label>
+                <div class="input-group input-group-sm">
+                  <button type="button" class="btn btn-outline-secondary" onclick="adjustQty(-100)">-</button>
+                  <input type="number" name="quantity" id="qtyInput" class="form-control bg-dark border-secondary text-white text-center fw-bold" placeholder="0" step="100" min="100" required oninput="calcTotal()" />
+                  <button type="button" class="btn btn-outline-secondary" onclick="adjustQty(100)">+</button>
+                </div>
+              </div>
+
+              <div class="mb-3 d-flex justify-content-between gap-1">
+                <button type="button" onclick="setQtyPercent(0.25)" class="btn btn-xs btn-outline-secondary flex-fill" style="font-size: 11px;">25%</button>
+                <button type="button" onclick="setQtyPercent(0.5)" class="btn btn-xs btn-outline-secondary flex-fill" style="font-size: 11px;">50%</button>
+                <button type="button" onclick="setQtyPercent(1)" class="btn btn-xs btn-outline-secondary flex-fill" style="font-size: 11px;">All</button>
+              </div>
+
+              <div class="mb-3 text-end">
+                <span class="text-secondary small me-2">Tổng:</span>
+                <span class="fs-6 fw-bold text-white" id="totalVal">0 ₫</span>
+              </div>
+
+              <div class="d-grid gap-2 mb-3">
+                <button type="submit" name="action" value="buy" class="btn btn-success fw-bold text-uppercase">MUA</button>
+                <button type="submit" name="action" value="sell" class="btn btn-danger fw-bold text-uppercase">BÁN</button>
+              </div>
+            </form>
+        
+        {% else %}
+            <div class="text-center py-5">
+                <i class="bi bi-lock-fill text-secondary" style="font-size: 3rem;"></i>
+                <p class="text-muted mt-3 mb-4 small">Bạn cần đăng nhập để thực hiện giao dịch mua bán cổ phiếu.</p>
+                <div class="d-grid gap-2">
+                    <a href="{{ url_for('auth.login') }}" class="btn btn-warning fw-bold text-dark">
+                        <i class="bi bi-box-arrow-in-right"></i> ĐĂNG NHẬP NGAY
+                    </a>
+                    <a href="{{ url_for('auth.register') }}" class="btn btn-outline-secondary btn-sm">
+                        Đăng ký tài khoản mới
+                    </a>
+                </div>
             </div>
-          </div>
-
-          <div class="mb-3 d-flex justify-content-between gap-1">
-            <button type="button" onclick="setQtyPercent(0.25)" class="btn btn-xs btn-outline-secondary flex-fill" style="font-size: 11px;">25%</button>
-            <button type="button" onclick="setQtyPercent(0.5)" class="btn btn-xs btn-outline-secondary flex-fill" style="font-size: 11px;">50%</button>
-            <button type="button" onclick="setQtyPercent(1)" class="btn btn-xs btn-outline-secondary flex-fill" style="font-size: 11px;">All</button>
-          </div>
-
-          <div class="mb-3 text-end">
-            <span class="text-secondary small me-2">Tổng:</span>
-            <span class="fs-6 fw-bold text-white" id="totalVal">0 ₫</span>
-          </div>
-
-          <div class="d-grid gap-2 mb-3">
-            <button type="submit" name="action" value="buy" class="btn btn-success fw-bold text-uppercase">MUA</button>
-            <button type="submit" name="action" value="sell" class="btn btn-danger fw-bold text-uppercase">BÁN</button>
-          </div>
-        </form>
+        {% endif %}
 
         <hr class="border-secondary my-3">
         
@@ -160,17 +167,12 @@
 <script src="https://unpkg.com/lightweight-charts@4.1.1/dist/lightweight-charts.standalone.production.js"></script>
 
 <script>
-  // ==========================================
   // 1. HÀM TÍNH TOÁN SMA
-  // ==========================================
   function calculateSMA(data, count) {
     var avg = function (data) {
       var sum = 0;
       var c = 0;
-      for (var i = 0; i < data.length; i++) {
-        sum += data[i].close;
-        c++;
-      }
+      for (var i = 0; i < data.length; i++) { sum += data[i].close; c++; }
       return sum / c;
     };
     var result = [];
@@ -181,9 +183,7 @@
     return result;
   }
 
-  // ==========================================
   // 2. KHỞI TẠO CHART
-  // ==========================================
   const container = document.getElementById('tv-chart');
   const loader = document.getElementById('chart-loader');
 
@@ -209,9 +209,7 @@
   const ma10Series = chart.addLineSeries({ color: '#2962FF', lineWidth: 1, crosshairMarkerVisible: false, lastValueVisible: false, priceLineVisible: false });
   const ma30Series = chart.addLineSeries({ color: '#F48FB1', lineWidth: 2, crosshairMarkerVisible: false, lastValueVisible: true, priceLineVisible: false });
 
-  // ==========================================
   // 3. XỬ LÝ DỮ LIỆU
-  // ==========================================
   let rawData = {{ history | tojson }};
 
   if (rawData && rawData.length > 0) {
@@ -244,7 +242,6 @@
     ma30Series.setData(ma30Data);
     chart.timeScale().fitContent();
 
-    // Legend Logic
     const legendIds = {
       open: document.getElementById('leg-open'), high: document.getElementById('leg-high'),
       low: document.getElementById('leg-low'), close: document.getElementById('leg-close'),
@@ -277,11 +274,10 @@
 
   window.addEventListener('resize', () => { chart.resize(container.clientWidth, container.clientHeight); });
 
-  // ==========================================
   // 4. LOGIC TÍNH TIỀN
-  // ==========================================
   const currentPrice = {{ current }};
-  const userBalance = {{ current_user.balance }};
+  // Xử lý an toàn cho biến userBalance khi chưa đăng nhập
+  const userBalance = {% if current_user.is_authenticated %}{{ current_user.balance }}{% else %}0{% endif %};
 
   function calcTotal() {
     const qtyInput = document.getElementById('qtyInput');
@@ -295,6 +291,7 @@
 
   function adjustQty(delta) {
     const qtyInput = document.getElementById('qtyInput');
+    if(!qtyInput) return;
     let currentQty = parseInt(qtyInput.value) || 0;
     let newQty = currentQty + delta;
     if (newQty < 0) newQty = 0;
@@ -303,17 +300,17 @@
   }
 
   function setQtyPercent(percent) {
-    if (currentPrice <= 0) return;
+    if (currentPrice <= 0 || userBalance <= 0) return;
     const maxQty = Math.floor(userBalance / currentPrice);
     let targetQty = Math.floor(maxQty * percent);
     const qtyInput = document.getElementById('qtyInput');
-    qtyInput.value = targetQty;
-    calcTotal();
+    if(qtyInput) {
+        qtyInput.value = targetQty;
+        calcTotal();
+    }
   }
 
-  // ==========================================
-  // 5. TÍNH NĂNG AI PREDICTION (GIAO DIỆN MỚI)
-  // ==========================================
+  // 5. AI PREDICTION
   const predSeries = chart.addLineSeries({
       color: '#d63031', lineWidth: 2, lineStyle: 2,
       title: 'AI Forecast', crosshairMarkerVisible: true,

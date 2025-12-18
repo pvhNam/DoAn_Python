@@ -1,22 +1,26 @@
 import yfinance as yf
 from flask import jsonify, Blueprint, render_template, request, flash, redirect, url_for
-from flask_login import login_required, current_user
+from flask_login import login_required, current_user # Vẫn giữ import login_required cho các API khác nếu cần
 from utils.cafef import get_current_price
-from utils.analysis import predict_trend # <--- DÒNG NÀY CHỈ ĐƯỢC Ở ĐÂY
+from utils.analysis import predict_trend
 import random
 import time
 from models.database import get_db
 
 market_bp = Blueprint("market", __name__)
 
-# --- ROUTE 1: CHI TIẾT CỔ PHIẾU ---
+# --- ROUTE 1: CHI TIẾT CỔ PHIẾU (ĐÃ MỞ CÔNG KHAI) ---
+# Không còn @login_required ở đây nữa
 @market_bp.route("/market/<symbol>")
-@login_required
 def stock_detail(symbol):
     symbol = symbol.upper()
-    current_price = get_current_price(symbol)
-    if current_price == 0: current_price = 10000 
     
+    # 1. Lấy giá hiện tại
+    current_price = get_current_price(symbol)
+    if current_price == 0:
+        current_price = 10000 
+    
+    # 2. Lấy dữ liệu lịch sử
     history = []
     try:
         ticker = yf.Ticker(f"{symbol}.VN")
@@ -24,16 +28,26 @@ def stock_detail(symbol):
         for index, row in df.iterrows():
             history.append({
                 'date': index.strftime('%Y-%m-%d'),
-                'open': row['Open'], 'high': row['High'], 'low': row['Low'], 'close': row['Close'], 'volume': row['Volume']
+                'open': row['Open'],
+                'high': row['High'],
+                'low': row['Low'],
+                'close': row['Close'],
+                'volume': row['Volume']
             })
     except Exception as e:
         print(f"Lỗi chart: {e}")
+        history = []
 
-    return render_template("stock_detail.html", symbol=symbol, current=current_price, history=history)
+    return render_template(
+        "stock_detail.html", 
+        symbol=symbol, 
+        current=current_price, 
+        history=history
+    )
 
-# --- ROUTE 2: DANH SÁCH THỊ TRƯỜNG ---
+# --- ROUTE 2: DANH SÁCH THỊ TRƯỜNG (ĐÃ MỞ CÔNG KHAI) ---
+# Không còn @login_required ở đây nữa
 @market_bp.route("/market")
-@login_required
 def market():
     conn = get_db()
     cursor = conn.cursor(dictionary=True)
@@ -45,28 +59,32 @@ def market():
     for row in db_rows:
         price = float(row['price'])
         vol_fake = random.randint(10, 500) * 10
+        
         stock_data.append({
-            "symbol": row['symbol'], "price": price,
-            "ref": float(row['ref_price']), "ceil": float(row['ceil_price']), "floor": float(row['floor_price']),
-            "total_vol": row['total_vol'], "vol_fake": vol_fake
+            "symbol": row['symbol'],
+            "price": price,
+            "ref": float(row['ref_price']),
+            "ceil": float(row['ceil_price']),
+            "floor": float(row['floor_price']),
+            "total_vol": row['total_vol'],
+            "vol_fake": vol_fake, 
+            "buy_price_1": price - 50,
+            "buy_vol_1": vol_fake * 2,
         })
+        
     return render_template("market.html", stocks=stock_data)
 
-# --- ROUTE 3: API AI PREDICT ---
-# --- ROUTE 3: API AI PREDICT ---
+# --- ROUTE 3: API AI PREDICT (CŨNG NÊN MỞ CÔNG KHAI CHO KHÁCH XEM) ---
 @market_bp.route("/api/predict/<symbol>")
-@login_required
 def api_predict(symbol):
     symbol = symbol.upper()
-    
-    # --- SỬA DÒNG NÀY (Thêm biến 'reason' vào) ---
-    # Cũ (Lỗi): data, trend = predict_trend(...)
-    # Mới (Đúng):
-    data, trend, reason = predict_trend(symbol, days_ahead=14) 
-    
-    return jsonify({
-        "symbol": symbol,
-        "trend": trend,
-        "reason": reason, # Nhớ trả về lý do để web hiển thị
-        "data": data 
-    })
+    try:
+        data, trend, reason = predict_trend(symbol, days_ahead=14)
+        return jsonify({
+            "symbol": symbol,
+            "trend": trend,
+            "reason": reason,
+            "data": data 
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
