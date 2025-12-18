@@ -30,15 +30,13 @@ def deposit():
 
 
 # --- TÍNH NĂNG MUA / BÁN  ---
-# ... (giữ nguyên các import)
-
 @trade_bp.route("/trade", methods=["POST"])
 @login_required
 def trade():
     symbol = request.form.get("symbol")
     action = request.form.get("action")
     
-    # 1. Validate input (số lượng)
+    # 1. Validate input
     try:
         qty = int(request.form.get("quantity"))
         if qty <= 0: raise ValueError
@@ -52,6 +50,7 @@ def trade():
         flash("Lỗi lấy giá thị trường!", "danger")
         return redirect(url_for("market.stock_detail", symbol=symbol))
         
+    # Tính toán bằng FLOAT để so sánh chính xác
     total_val = float(price_float * qty)  
     user_balance = float(current_user.balance) 
     
@@ -60,41 +59,25 @@ def trade():
     cursor = conn.cursor(dictionary=True)
     
     try:
-        # [QUAN TRỌNG] Kiểm tra thông tin thị trường (Market Data) trước
-        cursor.execute("SELECT total_vol FROM market_data WHERE symbol = %s", (symbol,))
-        market_info = cursor.fetchone()
-        
-        # Nếu mã này chưa có trong bảng market_data thì báo lỗi (hoặc coi như vol = 0)
-        available_vol = int(market_info['total_vol']) if market_info else 0
-
         if action == "buy":
             # --- MUA ---
-            
-            # 1. [MỚI] Kiểm tra khối lượng thị trường (total_vol)
-            if qty > available_vol:
-                flash(f"Thị trường chỉ còn {available_vol:,} cổ phiếu. Bạn không thể mua {qty:,}.", "danger")
-                return redirect(url_for("market.stock_detail", symbol=symbol))
-
-            # 2. Kiểm tra tiền người dùng
+            # Kiểm tra tiền (QUAN TRỌNG: Dùng float so sánh với float)
             if user_balance < total_val:
-                flash("Bạn không đủ tiền trong tài khoản!", "danger")
+                flash("Bạn không đủ tiền trong tài khoản để thực hiện giao dịch!", "danger")
                 return redirect(url_for("market.stock_detail", symbol=symbol))
             
-            # --- THỰC HIỆN GIAO DỊCH MUA ---
-            
-            # A. Trừ tiền người dùng
+            # Nếu đủ tiền thì chạy tiếp:
+            # 1. Trừ tiền
             cursor.execute("UPDATE users SET balance = balance - %s WHERE id = %s", (total_val, current_user.id))
             
-            # B. [MỚI] Trừ khối lượng trên thị trường (market_data)
-            cursor.execute("UPDATE market_data SET total_vol = total_vol - %s WHERE symbol = %s", (qty, symbol))
-            
-            # C. Cộng cổ phiếu vào Portfolio (Danh mục đầu tư)
+            # 2. Cộng cổ phiếu
             cursor.execute("SELECT * FROM portfolio WHERE user_id = %s AND symbol = %s", (current_user.id, symbol))
             port = cursor.fetchone()
             
             if port:
                 current_qty = int(port["quantity"])
                 current_avg = float(port["avg_price"])
+                
                 new_qty = current_qty + qty
                 # Tính giá trung bình mới
                 new_avg = ((current_avg * current_qty) + total_val) / new_qty
@@ -105,13 +88,14 @@ def trade():
                 cursor.execute("INSERT INTO portfolio (user_id, symbol, quantity, avg_price) VALUES (%s, %s, %s, %s)",
                                (current_user.id, symbol, qty, price_float))
             
-            # D. Lưu lịch sử
+            # 3. Lưu lịch sử
+            # LƯU Ý: Dùng biến price_float thay vì price (biến price không tồn tại nên gây lỗi)
             cursor.execute("INSERT INTO transactions (user_id, symbol, quantity, price, type, timestamp) VALUES (%s, %s, %s, %s, 'BUY', NOW())",
                            (current_user.id, symbol, qty, price_float))
             
             conn.commit()
             
-            # Cập nhật session hiển thị
+            # Cập nhật hiển thị (chuyển về Decimal để trừ vào session)
             current_user.balance -= Decimal(str(total_val)) 
             flash(f"Mua thành công {qty} {symbol}!", "success")
 
@@ -121,23 +105,22 @@ def trade():
             port = cursor.fetchone()
             
             if not port or port["quantity"] < qty:
-                flash("Bạn không đủ cổ phiếu để bán!", "danger")
+                flash("Không đủ cổ phiếu để bán!", "danger")
                 return redirect(url_for("market.stock_detail", symbol=symbol))
+            
             else:
-                # 1. Cộng tiền cho user
+                # 1. Cộng tiền
                 cursor.execute("UPDATE users SET balance = balance + %s WHERE id = %s", (total_val, current_user.id))
                 
-                # 2. [MỚI] Cộng lại khối lượng vào thị trường (Người này bán thì thị trường có thêm hàng)
-                cursor.execute("UPDATE market_data SET total_vol = total_vol + %s WHERE symbol = %s", (qty, symbol))
-
-                # 3. Trừ cổ phiếu trong Portfolio
+                # 2. Trừ cổ phiếu
                 new_qty = port["quantity"] - qty
                 if new_qty == 0:
                     cursor.execute("DELETE FROM portfolio WHERE id = %s", (port["id"],))
                 else:
                     cursor.execute("UPDATE portfolio SET quantity = %s WHERE id = %s", (new_qty, port["id"]))
-                   
-                # 4. Lưu lịch sử
+                
+                # 3. Lưu lịch sử
+                # LƯU Ý: Dùng biến price_float ở đây
                 cursor.execute("INSERT INTO transactions (user_id, symbol, quantity, price, type, timestamp) VALUES (%s, %s, %s, %s, 'SELL', NOW())",
                                (current_user.id, symbol, qty, price_float))
                 
@@ -147,7 +130,8 @@ def trade():
 
     except Exception as e:
         conn.rollback()
-        print(f"Lỗi Trade: {e}") 
+        # In lỗi ra terminal để bạn dễ sửa nếu có lỗi khác
+        print(f"Lỗi Trade Chi Tiết: {e}") 
         flash(f"Giao dịch thất bại: {e}", "danger")
     finally:
         cursor.close()

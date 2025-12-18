@@ -7,7 +7,7 @@ db_config = {
     'password': '12345', # Thay bằng mật khẩu MySQL của bạn
     'host': '127.0.0.1',
     'database': 'python',     # Tên database bạn đã tạo trong Workbench
-    'raise_on_warnings': True
+    'raise_on_warnings': False
 }
 
 def get_db():
