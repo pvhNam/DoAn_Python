@@ -5,7 +5,7 @@ from sklearn.linear_model import LinearRegression
 from datetime import datetime, timedelta
 from models.database import get_db
 
-# 1. HÀM TÍNH RSI
+# HÀM TÍNH RSI
 def calculate_rsi(data, window=14):
     delta = data.diff()
     gain = (delta.where(delta > 0, 0)).rolling(window=window).mean()
@@ -15,11 +15,8 @@ def calculate_rsi(data, window=14):
     rs = gain / loss.replace(0, 0.001)
     return 100 - (100 / (1 + rs))
 
-# 2. HÀM LẤY DỮ LIỆU CƠ BẢN TỪ DB (Mới)
+# HÀM LẤY DỮ LIỆU CƠ BẢN TỪ DB
 def get_fundamental_analysis(symbol):
-    """
-    Truy vấn Database để lấy thông tin Lợi nhuận & Tài sản
-    """
     try:
         conn = get_db()
         cursor = conn.cursor(dictionary=True)
@@ -44,7 +41,7 @@ def get_fundamental_analysis(symbol):
         
         report_text.append(f"Lợi nhuận năm {current['year']}: {profit_bil:,.0f} tỷ.")
 
-        # So sánh với năm trước (nếu có)
+        # So sánh với năm trước 
         if len(rows) > 1:
             prev = rows[1]
             if prev['profit'] and prev['profit'] != 0:
@@ -62,10 +59,10 @@ def get_fundamental_analysis(symbol):
         print(f"Lỗi Fundamental: {e}")
         return ""
 
-# 3. HÀM DỰ ĐOÁN CHÍNH
+# HÀM DỰ ĐOÁN CHÍNH
 def predict_trend(symbol, days_ahead=14):
     try:
-        # --- A. LẤY DỮ LIỆU KỸ THUẬT ---
+        #  LẤY DỮ LIỆU KỸ THUẬT
         ticker = yf.Ticker(f"{symbol}.VN")
         df = ticker.history(period="1y") # Lấy 1 năm
         
@@ -80,7 +77,7 @@ def predict_trend(symbol, days_ahead=14):
         current_rsi = df['RSI'].iloc[-1]
         current_ma20 = df['MA20'].iloc[-1]
 
-        # --- B. CHẠY MÔ HÌNH AI (LINEAR REGRESSION) ---
+        # CHẠY MÔ HÌNH AI (LINEAR REGRESSION) ---
         df_train = df.tail(60).reset_index() # Train 60 ngày
         df_train['Date_Ordinal'] = df_train['Date'].map(pd.Timestamp.toordinal)
         
@@ -117,28 +114,28 @@ def predict_trend(symbol, days_ahead=14):
                 "value": float(pred)
             })
 
-        # --- C. TỔNG HỢP NHẬN ĐỊNH ---
+        # TỔNG HỢP NHẬN ĐỊNH
         reasons = []
         
-        # 1. Phân tích Xu hướng (AI)
+        # Phân tích Xu hướng (AI)
         start_p = y[-1]
         end_p = predictions[-1]
         pct_change = ((end_p - start_p) / start_p) * 100
         
-        if pct_change > 3.0: trend = "TĂNG MẠNH 🚀"
-        elif pct_change > 0.5: trend = "TĂNG NHẸ 📈"
-        elif pct_change > -0.5: trend = "ĐI NGANG ➖"
-        elif pct_change > -3.0: trend = "GIẢM NHẸ 📉"
-        else: trend = "GIẢM MẠNH 🩸"
+        if pct_change > 3.0: trend = "TĂNG MẠNH "
+        elif pct_change > 0.5: trend = "TĂNG NHẸ "
+        elif pct_change > -0.5: trend = "ĐI NGANG "
+        elif pct_change > -3.0: trend = "GIẢM NHẸ "
+        else: trend = "GIẢM MẠNH "
 
-        # 2. Phân tích Kỹ thuật (RSI & MA)
+        # Phân tích Kỹ thuật (RSI & MA)
         if current_rsi > 70: reasons.append("RSI báo Quá Mua (Rủi ro điều chỉnh).")
         elif current_rsi < 30: reasons.append("RSI báo Quá Bán (Cơ hội bắt đáy).")
         
         if current_price > current_ma20: reasons.append("Giá trên MA20 (Xu hướng ngắn hạn Tốt).")
         else: reasons.append("Giá dưới MA20 (Xu hướng ngắn hạn Yếu).")
 
-        # 3. Phân tích Cơ bản (Lấy từ Database)
+        #  Phân tích Cơ bản (Lấy từ Database)
         fund_text = get_fundamental_analysis(symbol)
         if fund_text:
             reasons.append(f"| [Cơ bản] {fund_text}")

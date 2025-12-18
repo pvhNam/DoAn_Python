@@ -7,7 +7,7 @@ from decimal import Decimal
 
 trade_bp = Blueprint("trade", __name__)
 
-# ---  NẠP TIỀN  ---
+#  NẠP TIỀN 
 @trade_bp.route('/deposit', methods=['GET', 'POST'])
 @login_required
 def deposit():
@@ -29,16 +29,14 @@ def deposit():
     return render_template('deposit.html')
 
 
-# --- TÍNH NĂNG MUA / BÁN  ---
-# ... (giữ nguyên các import)
-
+# TÍNH NĂNG MUA / BÁN  
 @trade_bp.route("/trade", methods=["POST"])
 @login_required
 def trade():
     symbol = request.form.get("symbol")
     action = request.form.get("action")
     
-    # 1. Validate input (số lượng)
+    # Validate input (số lượng)
     try:
         qty = int(request.form.get("quantity"))
         if qty <= 0: raise ValueError
@@ -46,7 +44,7 @@ def trade():
         flash("Khối lượng không hợp lệ", "danger")
         return redirect(url_for("market.stock_detail", symbol=symbol))
 
-    # 2. Lấy giá thị trường
+    #  Lấy giá thị trường
     price_float = get_current_price(symbol)
     if price_float == 0: 
         flash("Lỗi lấy giá thị trường!", "danger")
@@ -60,7 +58,7 @@ def trade():
     cursor = conn.cursor(dictionary=True)
     
     try:
-        # [QUAN TRỌNG] Kiểm tra thông tin thị trường (Market Data) trước
+        # Kiểm tra thông tin thị trường (Market Data) trước
         cursor.execute("SELECT total_vol FROM market_data WHERE symbol = %s", (symbol,))
         market_info = cursor.fetchone()
         
@@ -70,25 +68,25 @@ def trade():
         if action == "buy":
             # --- MUA ---
             
-            # 1. [MỚI] Kiểm tra khối lượng thị trường (total_vol)
+            #  Kiểm tra khối lượng thị trường (total_vol)
             if qty > available_vol:
                 flash(f"Thị trường chỉ còn {available_vol:,} cổ phiếu. Bạn không thể mua {qty:,}.", "danger")
                 return redirect(url_for("market.stock_detail", symbol=symbol))
 
-            # 2. Kiểm tra tiền người dùng
+            # Kiểm tra tiền người dùng
             if user_balance < total_val:
                 flash("Bạn không đủ tiền trong tài khoản!", "danger")
                 return redirect(url_for("market.stock_detail", symbol=symbol))
             
-            # --- THỰC HIỆN GIAO DỊCH MUA ---
+            # THỰC HIỆN GIAO DỊCH MUA 
             
-            # A. Trừ tiền người dùng
+            #Trừ tiền người dùng
             cursor.execute("UPDATE users SET balance = balance - %s WHERE id = %s", (total_val, current_user.id))
             
-            # B. [MỚI] Trừ khối lượng trên thị trường (market_data)
+            # Trừ khối lượng trên thị trường (market_data)
             cursor.execute("UPDATE market_data SET total_vol = total_vol - %s WHERE symbol = %s", (qty, symbol))
             
-            # C. Cộng cổ phiếu vào Portfolio (Danh mục đầu tư)
+            #Cộng cổ phiếu vào Portfolio (Danh mục đầu tư)
             cursor.execute("SELECT * FROM portfolio WHERE user_id = %s AND symbol = %s", (current_user.id, symbol))
             port = cursor.fetchone()
             
@@ -105,7 +103,7 @@ def trade():
                 cursor.execute("INSERT INTO portfolio (user_id, symbol, quantity, avg_price) VALUES (%s, %s, %s, %s)",
                                (current_user.id, symbol, qty, price_float))
             
-            # D. Lưu lịch sử
+            #Lưu lịch sử
             cursor.execute("INSERT INTO transactions (user_id, symbol, quantity, price, type, timestamp) VALUES (%s, %s, %s, %s, 'BUY', NOW())",
                            (current_user.id, symbol, qty, price_float))
             
@@ -116,7 +114,7 @@ def trade():
             flash(f"Mua thành công {qty} {symbol}!", "success")
 
         elif action == "sell":
-            # --- BÁN ---
+            # BÁN 
             cursor.execute("SELECT * FROM portfolio WHERE user_id = %s AND symbol = %s", (current_user.id, symbol))
             port = cursor.fetchone()
             
@@ -124,20 +122,20 @@ def trade():
                 flash("Bạn không đủ cổ phiếu để bán!", "danger")
                 return redirect(url_for("market.stock_detail", symbol=symbol))
             else:
-                # 1. Cộng tiền cho user
+                # Cộng tiền cho user
                 cursor.execute("UPDATE users SET balance = balance + %s WHERE id = %s", (total_val, current_user.id))
                 
-                # 2. [MỚI] Cộng lại khối lượng vào thị trường (Người này bán thì thị trường có thêm hàng)
+                # Cộng lại khối lượng vào thị trường (Người này bán thì thị trường có thêm hàng)
                 cursor.execute("UPDATE market_data SET total_vol = total_vol + %s WHERE symbol = %s", (qty, symbol))
 
-                # 3. Trừ cổ phiếu trong Portfolio
+                #Trừ cổ phiếu trong Portfolio
                 new_qty = port["quantity"] - qty
                 if new_qty == 0:
                     cursor.execute("DELETE FROM portfolio WHERE id = %s", (port["id"],))
                 else:
                     cursor.execute("UPDATE portfolio SET quantity = %s WHERE id = %s", (new_qty, port["id"]))
                 
-                # 4. Lưu lịch sử
+                # Lưu lịch sử
                 cursor.execute("INSERT INTO transactions (user_id, symbol, quantity, price, type, timestamp) VALUES (%s, %s, %s, %s, 'SELL', NOW())",
                                (current_user.id, symbol, qty, price_float))
                 
@@ -155,7 +153,7 @@ def trade():
 
     return redirect(url_for("market.stock_detail", symbol=symbol))
 
-# --- 3. DANH MỤC ĐẦU TƯ ---
+# DANH MỤC ĐẦU TƯ 
 @trade_bp.route("/portfolio")
 @login_required
 def portfolio():
@@ -215,17 +213,16 @@ def portfolio():
     return render_template("portfolio.html", 
                            portfolio=data, 
                            total_asset=total_asset,
-                           chart_labels=chart_labels, # <--- Mới
-                           chart_values=chart_values) # <--- Mới
+                           chart_labels=chart_labels,
+                           chart_values=chart_values) 
 
-# --- 4. TRANG LỊCH SỬ GIAO DỊCH ---
+# TRANG LỊCH SỬ GIAO DỊCH 
 @trade_bp.route("/history")
 @login_required
 def history():
     conn = get_db()
     cursor = conn.cursor(dictionary=True)
     
-    # Lấy toàn bộ lịch sử của user, sắp xếp mới nhất lên đầu
     cursor.execute("""
         SELECT * FROM transactions 
         WHERE user_id = %s 

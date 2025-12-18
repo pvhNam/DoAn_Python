@@ -1,6 +1,6 @@
 import yfinance as yf
 from flask import jsonify, Blueprint, render_template, request, flash, redirect, url_for
-from flask_login import login_required, current_user # Vẫn giữ import login_required cho các API khác nếu cần
+from flask_login import login_required, current_user 
 from utils.cafef import get_current_price
 from utils.analysis import predict_trend
 import random
@@ -9,18 +9,17 @@ from models.database import get_db
 
 market_bp = Blueprint("market", __name__)
 
-# --- ROUTE 1: CHI TIẾT CỔ PHIẾU (ĐÃ MỞ CÔNG KHAI) ---
-# Không còn @login_required ở đây nữa
+# CHI TIẾT CỔ PHIẾU (ĐÃ MỞ CÔNG KHAI)
 @market_bp.route("/market/<symbol>")
 def stock_detail(symbol):
     symbol = symbol.upper()
     
-    # 1. Lấy giá hiện tại
+    # Lấy giá hiện tại
     current_price = get_current_price(symbol)
     if current_price == 0:
         current_price = 10000 
     
-    # 2. Lấy dữ liệu lịch sử
+    # Lấy dữ liệu lịch sử
     history = []
     try:
         ticker = yf.Ticker(f"{symbol}.VN")
@@ -45,8 +44,7 @@ def stock_detail(symbol):
         history=history
     )
 
-# --- ROUTE 2: DANH SÁCH THỊ TRƯỜNG (ĐÃ MỞ CÔNG KHAI) ---
-# Không còn @login_required ở đây nữa
+# DANH SÁCH THỊ TRƯỜNG
 @market_bp.route("/market")
 def market():
     conn = get_db()
@@ -74,7 +72,7 @@ def market():
         
     return render_template("market.html", stocks=stock_data)
 
-# --- ROUTE 3: API AI PREDICT (CŨNG NÊN MỞ CÔNG KHAI CHO KHÁCH XEM) ---
+# API AI PREDICT
 @market_bp.route("/api/predict/<symbol>")
 def api_predict(symbol):
     symbol = symbol.upper()
