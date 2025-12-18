@@ -53,17 +53,20 @@ def market():
     return render_template("market.html", stocks=stock_data)
 
 # --- ROUTE 3: API AI PREDICT ---
+# --- ROUTE 3: API AI PREDICT ---
 @market_bp.route("/api/predict/<symbol>")
 @login_required
 def api_predict(symbol):
     symbol = symbol.upper()
     
-    # Hàm mới trả về 3 biến: data, trend, reason
+    # --- SỬA DÒNG NÀY (Thêm biến 'reason' vào) ---
+    # Cũ (Lỗi): data, trend = predict_trend(...)
+    # Mới (Đúng):
     data, trend, reason = predict_trend(symbol, days_ahead=14) 
     
     return jsonify({
         "symbol": symbol,
         "trend": trend,
-        "reason": reason, # Gửi thêm lý do xuống Client
+        "reason": reason, # Nhớ trả về lý do để web hiển thị
         "data": data 
     })
