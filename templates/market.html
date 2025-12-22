@@ -59,9 +59,10 @@
                     {% endif %}
                     
                     <tr 
-                    style="cursor: pointer;"
-                    data-href="{{ url_for('market.stock_detail', symbol=s.symbol) }}"
-                    onclick="window.location.href=this.dataset.href">
+    style="cursor: pointer;"
+    data-href="{{ url_for('market.stock_detail', symbol=s.symbol) }}"
+    onclick="window.location.href=this.dataset.href"
+>
                         <td class="col-sym {{ color_class }}">{{ s.symbol }}</td>
                         <td class="text-purple">{{ "{:,.2f}".format(s.ceil/1000) }}</td>
                         <td class="text-cyan">{{ "{:,.2f}".format(s.floor/1000) }}</td>

@@ -14,28 +14,60 @@ market_bp = Blueprint("market", __name__)
 def stock_detail(symbol):
     symbol = symbol.upper()
     
-    # Lấy giá hiện tại
+    # 1. Lấy giá hiện tại
     current_price = get_current_price(symbol)
     if current_price == 0:
         current_price = 10000 
     
-    # Lấy dữ liệu lịch sử
     history = []
+    conn = None
+    cursor = None
+    
     try:
-        ticker = yf.Ticker(f"{symbol}.VN")
-        df = ticker.history(period="6mo") 
-        for index, row in df.iterrows():
+        conn = get_db()
+        if conn is None:
+            raise Exception("Không thể kết nối Database")
+
+        # --- FIX LỖI CONNECTION NOT AVAILABLE ---
+        # Tự động kết nối lại nếu bị ngắt
+        if not conn.is_connected():
+            conn.ping(reconnect=True, attempts=3, delay=2)
+
+        cursor = conn.cursor(dictionary=True)
+        
+        # Lấy dữ liệu và sắp xếp theo ngày tăng dần
+        sql = """
+            SELECT date, open, high, low, close, volume 
+            FROM stock_history 
+            WHERE symbol = %s 
+            ORDER BY date ASC
+        """
+        cursor.execute(sql, (symbol,))
+        rows = cursor.fetchall()
+
+        for row in rows:
+            # --- FIX LỖI SAI BIỂU ĐỒ ---
+            # 1. Date phải là string 'YYYY-MM-DD'
+            # 2. Giá tiền (Decimal) phải ép về float
             history.append({
-                'date': index.strftime('%Y-%m-%d'),
-                'open': row['Open'],
-                'high': row['High'],
-                'low': row['Low'],
-                'close': row['Close'],
-                'volume': row['Volume']
+                'date': str(row['date']), 
+                'open': float(row['open']),
+                'high': float(row['high']),
+                'low': float(row['low']),
+                'close': float(row['close']),
+                'volume': int(row['volume'])
             })
+            
     except Exception as e:
-        print(f"Lỗi chart: {e}")
-        history = []
+        print(f"Lỗi chart ({symbol}): {e}")
+        history = [] # Trả về rỗng để không crash web
+        
+    finally:
+        # Đóng kết nối an toàn
+        if cursor:
+            cursor.close()
+        if conn and conn.is_connected():
+            conn.close()
 
     return render_template(
         "stock_detail.html", 
@@ -43,7 +75,6 @@ def stock_detail(symbol):
         current=current_price, 
         history=history
     )
-
 # DANH SÁCH THỊ TRƯỜNG
 @market_bp.route("/market")
 def market():

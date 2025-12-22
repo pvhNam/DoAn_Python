@@ -37,7 +37,7 @@ def index():
 def update_market_data_startup():
     symbols = ["ACB", "BID", "BVH", "CTG", "FPT", "GAS", "HPG", "MBB", "MSN", "MWG", 
                "NVL", "PDR", "PLX", "PNJ", "POW", "SAB", "SSI", "STB", "TCB", "TPB", 
-               "VCB", "VHM", "VIB", "VIC", "VJC", "VNM", "VPB", "VRE"]
+               "VCB", "VHM", "VIB", "VIC", "VJC", "VNM", "VPB", "VRE","DPM"]
     
     print(" Đang cập nhật dữ liệu thị trường...")
     
