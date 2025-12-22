@@ -83,8 +83,8 @@
         const ctx = document.getElementById('assetChart').getContext('2d');
         
         // Nhận dữ liệu từ Flask
-        const labels = {{ chart_labels | tojson }};
-        const data = {{ chart_values | tojson }};
+        const labels = JSON.parse('{{ chart_labels | tojson | safe }}');
+        const data = JSON.parse('{{ chart_values | tojson | safe }}');
 
         new Chart(ctx, {
             type: 'doughnut', // Hoặc 'pie' nếu thích hình tròn đặc

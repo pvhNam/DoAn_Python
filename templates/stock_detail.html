@@ -210,7 +210,7 @@
   const ma30Series = chart.addLineSeries({ color: '#F48FB1', lineWidth: 2, crosshairMarkerVisible: false, lastValueVisible: true, priceLineVisible: false });
 
   // 3. XỬ LÝ DỮ LIỆU
-  let rawData = {{ history | tojson }};
+let rawData = JSON.parse('{{ history | tojson | safe }}');
 
   if (rawData && rawData.length > 0) {
     if (loader) loader.style.display = 'none';
@@ -275,9 +275,9 @@
   window.addEventListener('resize', () => { chart.resize(container.clientWidth, container.clientHeight); });
 
   // 4. LOGIC TÍNH TIỀN
-  const currentPrice = {{ current }};
+  const currentPrice = Number("{{ current }}");
   // Xử lý an toàn cho biến userBalance khi chưa đăng nhập
-  const userBalance = {% if current_user.is_authenticated %}{{ current_user.balance }}{% else %}0{% endif %};
+  const userBalance = Number("{% if current_user.is_authenticated %}{{ current_user.balance }}{% else %}0{% endif %}");
 
   function calcTotal() {
     const qtyInput = document.getElementById('qtyInput');
