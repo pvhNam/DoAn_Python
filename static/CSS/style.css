@@ -1,203 +1,147 @@
-/* Reset cơ bản */
-* { box-sizing: border-box; }
-body {
-    background-color: #0b0e11; /* Đổi sang đen xanh nhẹ kiểu app hiện đại cho đỡ mỏi mắt hơn đen tuyền */
-    color: #d1d1d1;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
-    font-size: 12px;
-    margin: 0;
-    overflow-y: auto; /* Cho phép cuộn để không lỗi trang Login */
-}
-
-/* Navbar */
-.navbar {
-    background-color: #181a20 !important;
-    border-bottom: 1px solid #2a2e39;
-    height: 40px;
-    padding: 0 10px;
-}
-.navbar-brand { font-size: 14px; font-weight: bold; color: #fcd535 !important; text-transform: uppercase; }
-.nav-link { color: #848e9c !important; font-size: 12px; }
-
-/* Index Bar */
-/* Khai báo màu chuẩn tài chính */
+/* --- GLOBAL CONFIG --- */
 :root {
-    --bg-dark: #0b0e11;
-    --card-bg: #1e2329;
-    --border-color: #2a2e39;
-    --text-main: #eaecef;
-    --text-sub: #848e9c;
-    --color-up: #0ecb81;   /* Xanh lá tươi */
-    --color-down: #f6465d; /* Đỏ giảm */
-    --color-ref: #f0b90b;  /* Vàng tham chiếu */
+    --bg-main: #131722;       /* Màu nền chính (TradingView Dark) */
+    --bg-panel: #1e222d;      /* Màu nền các thẻ/bảng */
+    --bg-hover: #2a2e39;      /* Màu khi di chuột */
+    --text-main: #d1d4dc;     /* Màu chữ chính */
+    --text-muted: #787b86;    /* Màu chữ mờ */
+    --color-up: #089981;      /* Xanh tăng giá (Chuẩn quốc tế) */
+    --color-down: #f23645;    /* Đỏ giảm giá */
+    --color-ref: #ffc107;     /* Vàng tham chiếu */
+    --color-ceil: #d0021b;    /* Tím trần (Ở đây để tím hoặc hồng đậm tùy sàn) */
+    --color-floor: #00c5c5;   /* Xanh lơ sàn */
+    --font-num: 'JetBrains Mono', monospace; /* Font số chuyên dụng */
 }
 
-.index-bar {
-    background-color: var(--bg-dark);
-    border-bottom: 1px solid var(--border-color); /* Bỏ border-top dày, chỉ giữ bottom tinh tế */
-    display: flex;
-    align-items: center; /* Căn giữa theo chiều dọc */
-    gap: 16px; /* Khoảng cách vừa phải */
-    overflow-x: auto;
-    height: 80px; /* Giảm chiều cao cho gọn */
-    padding: 0 20px;
-    
-    /* Ẩn thanh cuộn nhưng vẫn scroll được */
-    scrollbar-width: none; /* Firefox */
-    -ms-overflow-style: none;  /* IE 10+ */
+body {
+    background-color: var(--bg-main);
+    color: var(--text-main);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-size: 14px;
 }
 
-/* Ẩn thanh cuộn cho Chrome/Safari */
-.index-bar::-webkit-scrollbar {
-    display: none;
+/* --- TYPOGRAPHY --- */
+.fw-num { font-family: var(--font-num); }
+.text-up { color: var(--color-up) !important; }
+.text-down { color: var(--color-down) !important; }
+.text-ref { color: var(--color-ref) !important; }
+.bg-up { background-color: rgba(8, 153, 129, 0.2); color: var(--color-up); }
+.bg-down { background-color: rgba(242, 54, 69, 0.2); color: var(--color-down); }
+
+/* --- NAVBAR --- */
+.navbar {
+    background-color: var(--bg-panel) !important;
+    border-bottom: 1px solid #2a2e39;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
 }
 
-.index-item {
-    background: var(--card-bg);
-    border: 1px solid var(--border-color);
-    border-radius: 4px;
-    padding: 8px 16px;
-    min-width: 160px;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    flex-shrink: 0; /* Quan trọng: Không cho thẻ bị co lại khi màn hình nhỏ */
-    transition: transform 0.2s ease, background 0.2s;
-    cursor: pointer;
-    position: relative;
-    flex: 1; /* Cho phép thẻ tự phình to ra để lấp đầy chỗ trống */
-    justify-content: space-between;
+.navbar-brand {
+    font-weight: 800;
+    letter-spacing: 1px;
+    background: linear-gradient(45deg, #FFD700, #FFA500);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
 }
 
-/* Hiệu ứng Hover nhẹ */
-.index-item:hover {
-    transform: translateY(-2px);
-    background: #2b3139;
-    border-color: #474d57;
+/* --- CARDS & PANELS --- */
+.card {
+    background-color: var(--bg-panel);
+    border: 1px solid #2a2e39;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.2);
 }
-
-.index-name {
+.card-header {
+    background-color: rgba(255,255,255,0.02);
+    border-bottom: 1px solid #2a2e39;
     font-weight: 600;
-    font-size: 12px;
-    color: var(--text-sub);
-    text-transform: uppercase;
-    margin-bottom: 4px;
-    letter-spacing: 0.5px;
 }
 
-.index-val {
-    font-weight: 700;
-    font-size: 15px;
-    font-family: 'Roboto', 'Arial', sans-serif; /* Nên dùng font số rõ ràng */
-    display: flex;
-    align-items: center;
-    gap: 6px;
+/* --- TABLES (Electronic Board Style) --- */
+.table-dark {
+    background-color: var(--bg-panel);
+    color: var(--text-main);
 }
-
-/* --- Định nghĩa màu sắc trạng thái --- */
-/* Tăng: Màu xanh + Border trái xanh */
-.c-up { color: var(--color-up); }
-.item-up { border-left: 3px solid var(--color-up); }
-
-/* Giảm: Màu đỏ + Border trái đỏ */
-.c-down { color: var(--color-down); }
-.item-down { border-left: 3px solid var(--color-down); }
-
-/* Tham chiếu: Màu vàng */
-.c-ref { color: var(--color-ref); }
-.item-ref { border-left: 3px solid var(--color-ref); }
-
-/* BẢNG GIÁ */
-.board-container {
-    height: calc(100vh - 90px);
-    overflow: auto;
-    background-color: #0b0e11;
-}
-
 .table-vnd {
     width: 100%;
-    border-collapse: separate; /* Dùng separate để sticky hoạt động tốt hơn */
+    font-size: 13px;
+    border-collapse: separate;
     border-spacing: 0;
 }
-
-/* Header Bảng */
-.table-vnd thead th {
-    position: sticky;
-    top: 0;
-    z-index: 10;
-    background-color: #181a20;
-    color: #848e9c;
-    font-size: 11px;
-    font-weight: 600;
+.table-vnd th {
+    background-color: #1b1e26;
+    color: var(--text-muted);
+    font-weight: 500;
     text-align: center;
+    padding: 8px 4px;
+    border: 1px solid #2a2e39;
+    border-bottom: 2px solid #2a2e39;
+}
+.table-vnd td {
+    background-color: var(--bg-panel);
+    padding: 8px 4px;
+    text-align: right;
     border-bottom: 1px solid #2a2e39;
     border-right: 1px solid #2a2e39;
-    padding: 6px 4px;
+    font-family: var(--font-num);
+}
+.table-vnd tr:hover td {
+    background-color: var(--bg-hover);
+    cursor: pointer;
+}
+/* Cột Mã CK to và đậm hơn */
+.table-vnd td.col-sym {
+    text-align: left;
+    font-weight: bold;
+    font-family: sans-serif; 
+}
+
+/* --- FORM ELEMENTS --- */
+.form-control {
+    background-color: #131722;
+    border: 1px solid #2a2e39;
+    color: #fff;
+}
+.form-control:focus {
+    background-color: #131722;
+    border-color: #2962ff;
+    color: #fff;
+    box-shadow: none;
+}
+
+/* --- AUTH PAGE (Login/Register) --- */
+.auth-bg {
+    background: radial-gradient(circle at top right, #1f2533 0%, #000 100%);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+}
+.auth-card {
+    backdrop-filter: blur(10px);
+    background: rgba(30, 34, 45, 0.8);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* --- INDEX BAR (Thanh chỉ số trên cùng) --- */
+.index-bar {
+    display: flex;
+    gap: 15px;
+    padding: 10px 15px;
+    background: var(--bg-panel);
+    border-bottom: 1px solid #2a2e39;
+    overflow-x: auto;
     white-space: nowrap;
 }
-
-/* Fix góc chết trên cùng bên trái */
-.table-vnd thead th:first-child {
-    position: sticky;
-    left: 0;
-    z-index: 20;
-    background-color: #181a20;
-    border-right: 1px solid #2a2e39;
+.index-item {
+    display: flex;
+    flex-direction: column;
+    padding: 5px 10px;
+    border-radius: 4px;
+    min-width: 120px;
 }
+.index-name { font-size: 11px; color: var(--text-muted); font-weight: 700; }
+.index-val { font-family: var(--font-num); font-size: 14px; font-weight: bold; }
 
-/* Ô dữ liệu */
-.table-vnd tbody td {
-    background-color: #0b0e11;
-    color: #eaecef;
-    font-size: 13px; /* Tăng nhẹ cho dễ đọc */
-    font-weight: 500;
-    padding: 6px 4px;
-    text-align: right;
-    border-bottom: 1px solid #1e2329;
-    border-right: 1px solid #1e2329;
-    vertical-align: middle;
-    font-family: 'Arial', sans-serif; /* Số dùng Arial cho rõ nét */
-}
-
-/* Cột Mã CK cố định */
-.col-sym {
-    position: sticky;
-    left: 0;
-    z-index: 5;
-    background-color: #0b0e11 !important;
-    text-align: left !important;
-    font-weight: bold;
-    border-right: 1px solid #2a2e39 !important;
-    width: 80px;
-    padding-left: 8px !important;
-}
-
-/* Hover dòng */
-.table-vnd tbody tr:hover td { background-color: #2a2e39 !important; cursor: pointer; }
-.table-vnd tbody tr:hover .col-sym { background-color: #2a2e39 !important; }
-
-/* MÀU SẮC ĐỒNG BỘ (Style hiện đại) */
-.c-up, .text-up { color: #0ecb81 !important; }
-.c-down, .text-down { color: #f6465d !important; }
-.c-ref, .text-ref { color: #fcd535 !important; }
-.c-ceil, .text-ceil { color: #c02db5 !important; }
-.c-floor, .text-floor { color: #23e8e8 !important; }
-
-.bg-highlight { background-color: #131722; }
-
-/* Scrollbar */
+/* Custom Scrollbar */
 ::-webkit-scrollbar { width: 8px; height: 8px; }
-::-webkit-scrollbar-track { background: #0b0e11; }
-::-webkit-scrollbar-thumb { background: #2a2e39; border-radius: 4px; }
-::-webkit-scrollbar-thumb:hover { background: #474d57; }
-
-/* --- STYLE CHO TRANG CHI TIẾT --- */
-.bg-dark-panel { background-color: #181a20; border-left: 1px solid #2a2e39; }
-.btn-tab { background: transparent; border: none; color: #848e9c; border-bottom: 2px solid transparent; transition: 0.3s; }
-.btn-tab:hover { color: #fff; background: #2a2e39; }
-.btn-tab.active { color: #fff; border-bottom: 2px solid #fcd535; background: #2b3139; }
-.bg-input { background-color: #2a2e39; border: 1px solid #474d57; transition: 0.2s; }
-.bg-input:focus-within { border-color: #fcd535; }
-.percent-badge { cursor: pointer; background: #2a2e39; padding: 2px 8px; border-radius: 2px; border: 1px solid #474d57; transition: 0.2s; }
-.percent-badge:hover { border-color: #fcd535; color: #fcd535; }
-#tv-chart { cursor: crosshair; }
+::-webkit-scrollbar-track { background: var(--bg-main); }
+::-webkit-scrollbar-thumb { background: #444; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #666; }

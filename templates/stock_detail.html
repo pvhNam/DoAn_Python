@@ -1,44 +1,37 @@
-{% extends "base.html" %}
-{% block title %}{{ symbol }} - Chi tiết cổ phiếu{% endblock %}
-
+{% extends "base.html" %} 
+{% block title %}{{ symbol }} - Chi tiết cổ phiếu{% endblock %} 
 {% block content %}
+
 <style>
-  /* CSS cho Legend (Bảng thông số khi di chuột) */
   .chart-legend {
-    position: absolute;
-    top: 10px;
-    left: 10px;
-    z-index: 2;
-    font-family: 'Roboto', sans-serif;
-    font-size: 12px;
-    line-height: 18px;
-    font-weight: 500;
-    color: #d1d4dc;
-    pointer-events: none;
-    /* Để chuột xuyên qua không bị vướng */
+    position: absolute; top: 60px; left: 12px; z-index: 100;
+    font-family: "Roboto", sans-serif; font-size: 12px;
+    line-height: 18px; font-weight: 500; color: #d1d4dc;
+    pointer-events: none; background-color: rgba(19, 23, 34, 0.7);
+    padding: 6px; border-radius: 4px;
   }
-
-  .legend-item {
-    display: flex;
-    gap: 8px;
-  }
-
-  .legend-label {
-    opacity: 0.7;
-  }
-
-  .legend-value {
-    font-weight: bold;
-  }
+  .legend-item { display: flex; gap: 10px; }
 </style>
+
+<div class="container-fluid px-4 mt-2">
+  {% with messages = get_flashed_messages(with_categories=true) %} 
+    {% if messages %} 
+      {% for category, message in messages %}
+      <div class="alert alert-{{ category }} alert-dismissible fade show shadow-sm" role="alert">
+        <strong>Thông báo:</strong> {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
+      {% endfor %} 
+    {% endif %} 
+  {% endwith %}
+</div>
 
 <div class="container-fluid p-0">
   <div class="row g-0" style="height: calc(100vh - 50px)">
-
+    
     <div class="col-md-9 border-end border-secondary position-relative d-flex flex-column">
-
-      <div class="chart-header p-2 d-flex align-items-center gap-4 px-4"
-        style="background: #131722; border-bottom: 1px solid #2a2e39; height: 50px;">
+      
+      <div class="chart-header p-2 d-flex align-items-center gap-4 px-4" style="background: #131722; border-bottom: 1px solid #2a2e39; height: 50px;">
         <h4 class="m-0 fw-bold text-warning">{{ symbol }}</h4>
 
         <div class="d-flex align-items-end gap-2">
@@ -46,20 +39,19 @@
           <span class="fs-6 text-muted mb-1">VNĐ</span>
         </div>
 
-        {% if history and history|length > 1 %}
-        {% set change = current - history[-1].close %}
-        {% set pct = (change / history[-1].close) * 100 %}
-        <div class="{{ 'text-success' if change >= 0 else 'text-danger' }} d-flex align-items-center gap-2 fw-bold">
-          <span class="fs-5">{{ "{:+,.0f}".format(change) }}</span>
-          <span
-            class="badge {{ 'bg-success' if change >= 0 else 'bg-danger' }} bg-opacity-25 text-white border {{ 'border-success' if change >= 0 else 'border-danger' }}">
-            {{ "{:+.2f}%".format(pct) }}
-          </span>
-        </div>
+        {% if history and history|length > 1 %} 
+          {% set change = current - history[-1].close %} 
+          {% set pct = (change / history[-1].close) * 100 %}
+          <div class="{{ 'text-success' if change >= 0 else 'text-danger' }} d-flex align-items-center gap-2 fw-bold">
+            <span class="fs-5">{{ "{:+,.0f}".format(change) }}</span>
+            <span class="badge {{ 'bg-success' if change >= 0 else 'bg-danger' }} bg-opacity-25 text-white border {{ 'border-success' if change >= 0 else 'border-danger' }}">
+              {{ "{:+.2f}%".format(pct) }}
+            </span>
+          </div>
         {% endif %}
       </div>
 
-      <div id="chart-container" style="width: 100%; flex-grow: 1; position: relative;">
+      <div id="chart-container" style="width: 100%; flex-grow: 1; position: relative">
         <div id="tv-chart"></div>
 
         <div class="chart-legend" id="chart-legend">
@@ -74,8 +66,8 @@
             <span style="color: #768f40">Vol: <span id="leg-vol">--</span></span>
           </div>
           <div class="legend-item">
-            <span style="color: #2962FF">MA10: <span id="leg-ma10">--</span></span>
-            <span style="color: #F48FB1; margin-left: 8px;">MA30: <span id="leg-ma30">--</span></span>
+            <span style="color: #2962ff">MA10: <span id="leg-ma10">--</span></span>
+            <span style="color: #f48fb1; margin-left: 8px">MA30: <span id="leg-ma30">--</span></span>
           </div>
         </div>
 
@@ -86,63 +78,87 @@
       </div>
     </div>
 
-    <div class="col-md-3 bg-dark-panel d-flex flex-column" style="background: #1e222d;">
-      <div class="p-3 flex-grow-1">
+    <div class="col-md-3 bg-dark-panel d-flex flex-column" style="background: #1e222d; border-left: 1px solid #2a2e39;">
+      <div class="p-3 flex-grow-1 overflow-auto">
         <h5 class="text-white mb-3 text-uppercase border-bottom border-secondary pb-2">Đặt Lệnh</h5>
-        <form action="/trade" method="post" id="tradeForm">
-          <input type="hidden" name="symbol" value="{{ symbol }}" />
 
-          <div class="d-flex justify-content-between mb-3 p-2 rounded bg-dark border border-secondary">
-            <span class="text-secondary small">Sức mua:</span>
-            <span class="text-warning fw-bold">{{ "{:,.0f}".format(current_user.balance) }} ₫</span>
-          </div>
+        {% if current_user.is_authenticated %}
+            <form action="{{ url_for('trade.trade') }}" method="post" id="tradeForm">
+              <input type="hidden" name="symbol" value="{{ symbol }}" />
 
-          <div class="mb-3">
-            <label class="text-secondary small mb-1">Giá thị trường</label>
-            <input type="text" class="form-control bg-dark border-secondary text-white fw-bold"
-              value="{{ '{:,.0f}'.format(current) }}" readonly />
-          </div>
+              <div class="d-flex justify-content-between mb-2 p-2 rounded bg-black bg-opacity-25 border border-secondary">
+                <span class="text-secondary small">Sức mua:</span>
+                <span class="text-warning fw-bold">{{ "{:,.0f}".format(current_user.balance) }} ₫</span>
+              </div>
 
-          <div class="mb-3">
-            <label class="text-secondary small mb-1">Khối lượng (Lô 100)</label>
-            <div class="input-group">
-              <button type="button" class="btn btn-outline-secondary" onclick="adjustQty(-100)">-</button>
-              <input type="number" name="quantity" id="qtyInput"
-                class="form-control bg-dark border-secondary text-white text-center fw-bold" placeholder="0" step="100"
-                min="100" required oninput="calcTotal()" />
-              <button type="button" class="btn btn-outline-secondary" onclick="adjustQty(100)">+</button>
+              <div class="mb-3">
+                <label class="text-secondary small mb-1">Khối lượng</label>
+                <div class="input-group input-group-sm">
+                  <button type="button" class="btn btn-outline-secondary" onclick="adjustQty(-100)">-</button>
+                  <input type="number" name="quantity" id="qtyInput" class="form-control bg-dark border-secondary text-white text-center fw-bold" placeholder="0" step="100" min="100" required oninput="calcTotal()" />
+                  <button type="button" class="btn btn-outline-secondary" onclick="adjustQty(100)">+</button>
+                </div>
+              </div>
+
+              <div class="mb-3 d-flex justify-content-between gap-1">
+                <button type="button" onclick="setQtyPercent(0.25)" class="btn btn-xs btn-outline-secondary flex-fill" style="font-size: 11px;">25%</button>
+                <button type="button" onclick="setQtyPercent(0.5)" class="btn btn-xs btn-outline-secondary flex-fill" style="font-size: 11px;">50%</button>
+                <button type="button" onclick="setQtyPercent(1)" class="btn btn-xs btn-outline-secondary flex-fill" style="font-size: 11px;">All</button>
+              </div>
+
+              <div class="mb-3 text-end">
+                <span class="text-secondary small me-2">Tổng:</span>
+                <span class="fs-6 fw-bold text-white" id="totalVal">0 ₫</span>
+              </div>
+
+              <div class="d-grid gap-2 mb-3">
+                <button type="submit" name="action" value="buy" class="btn btn-success fw-bold text-uppercase">MUA</button>
+                <button type="submit" name="action" value="sell" class="btn btn-danger fw-bold text-uppercase">BÁN</button>
+              </div>
+            </form>
+        
+        {% else %}
+            <div class="text-center py-5">
+                <i class="bi bi-lock-fill text-secondary" style="font-size: 3rem;"></i>
+                <p class="text-muted mt-3 mb-4 small">Bạn cần đăng nhập để thực hiện giao dịch mua bán cổ phiếu.</p>
+                <div class="d-grid gap-2">
+                    <a href="{{ url_for('auth.login') }}" class="btn btn-warning fw-bold text-dark">
+                        <i class="bi bi-box-arrow-in-right"></i> ĐĂNG NHẬP NGAY
+                    </a>
+                    <a href="{{ url_for('auth.register') }}" class="btn btn-outline-secondary btn-sm">
+                        Đăng ký tài khoản mới
+                    </a>
+                </div>
             </div>
-          </div>
+        {% endif %}
 
-          <div class="mb-4 d-flex justify-content-between gap-1">
-            <button type="button" onclick="setQtyPercent(0.25)"
-              class="btn btn-sm btn-outline-secondary flex-fill">25%</button>
-            <button type="button" onclick="setQtyPercent(0.5)"
-              class="btn btn-sm btn-outline-secondary flex-fill">50%</button>
-            <button type="button" onclick="setQtyPercent(0.75)"
-              class="btn btn-sm btn-outline-secondary flex-fill">75%</button>
-            <button type="button" onclick="setQtyPercent(1)"
-              class="btn btn-sm btn-outline-secondary flex-fill">All</button>
-          </div>
+        <hr class="border-secondary my-3">
+        
+        <div class="d-grid">
+            <button onclick="runAI()" id="btn-ai" class="btn btn-outline-info fw-bold py-2" style="border-style: dashed;">
+                <i class="bi bi-robot"></i> PHÂN TÍCH AI
+            </button>
+        </div>
 
-          <div
-            class="d-flex justify-content-between align-items-center mb-4 p-3 rounded bg-black bg-opacity-25 border border-secondary">
-            <span class="text-secondary small">Tổng giá trị:</span>
-            <span class="fs-5 fw-bold text-white" id="totalVal">0 ₫</span>
-          </div>
+        <div id="ai-panel" class="mt-3 p-2 rounded border border-info bg-dark bg-opacity-50" style="display: none; font-size: 0.85rem;">
+            <div class="d-flex justify-content-between align-items-center mb-2 border-bottom border-secondary pb-1">
+                <span class="text-info fw-bold"><i class="bi bi-stars"></i> Kết quả AI</span>
+                <span id="ai-trend-badge" class="badge bg-secondary">---</span>
+            </div>
+            <div class="mb-2">
+                <span class="text-muted small d-block">Lý do khuyến nghị:</span>
+                <p id="ai-reason-text" class="text-white mb-0 mt-1" style="line-height: 1.4; text-align: justify;">
+                    Đang tải...
+                </p>
+            </div>
+        </div>
 
-          <div class="d-grid gap-2">
-            <button type="submit" name="action" value="buy"
-              class="btn btn-success py-3 fw-bold text-uppercase shadow">MUA {{ symbol }}</button>
-            <button type="submit" name="action" value="sell"
-              class="btn btn-danger py-3 fw-bold text-uppercase shadow">BÁN {{ symbol }}</button>
-          </div>
-        </form>
       </div>
 
-      <div class="p-3 border-top border-secondary text-center">
-        <a href="{{ url_for('market.market') }}" class="text-decoration-none text-info small"><i
-            class="bi bi-arrow-left"></i> Quay lại</a>
+      <div class="p-2 border-top border-secondary text-center">
+        <a href="{{ url_for('market.market') }}" class="text-decoration-none text-secondary small hover-white">
+          <i class="bi bi-arrow-left"></i> Quay lại thị trường
+        </a>
       </div>
     </div>
   </div>
@@ -151,17 +167,12 @@
 <script src="https://unpkg.com/lightweight-charts@4.1.1/dist/lightweight-charts.standalone.production.js"></script>
 
 <script>
-  // ==========================================
-  // 1. HÀM TÍNH TOÁN SMA (Moving Average)
-  // ==========================================
+  // 1. HÀM TÍNH TOÁN SMA
   function calculateSMA(data, count) {
     var avg = function (data) {
       var sum = 0;
       var c = 0;
-      for (var i = 0; i < data.length; i++) {
-        sum += data[i].close;
-        c++;
-      }
+      for (var i = 0; i < data.length; i++) { sum += data[i].close; c++; }
       return sum / c;
     };
     var result = [];
@@ -172,134 +183,74 @@
     return result;
   }
 
-  // ==========================================
   // 2. KHỞI TẠO CHART
-  // ==========================================
   const container = document.getElementById('tv-chart');
   const loader = document.getElementById('chart-loader');
 
-  // Set chiều cao cha để chart fill hết
   container.style.height = "100%";
   if (container.clientHeight === 0) container.style.height = "500px";
 
   const chart = LightweightCharts.createChart(container, {
     layout: { textColor: '#d1d4dc', background: { type: 'solid', color: '#131722' } },
     grid: { vertLines: { color: '#2a2e39', style: 1 }, horzLines: { color: '#2a2e39', style: 1 } },
-    rightPriceScale: {
-      visible: true,
-      scaleMargins: { top: 0.1, bottom: 0.2 }, // Chừa 20% đáy cho Volume
-      borderColor: '#2a2e39',
-    },
+    rightPriceScale: { visible: true, scaleMargins: { top: 0.1, bottom: 0.2 }, borderColor: '#2a2e39' },
     timeScale: { timeVisible: true, secondsVisible: false, borderColor: '#2a2e39', rightOffset: 5 },
-    crosshair: {
-      mode: LightweightCharts.CrosshairMode.Normal, // Cho phép di chuột mượt
-    },
-    // Watermark: Tên mã chứng khoán chìm
+    crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
     watermark: {
-      visible: true,
-      fontSize: 60,
-      horzAlign: 'center',
-      vertAlign: 'center',
-      color: 'rgba(255, 255, 255, 0.05)',
-      text: '{{ symbol }}',
+      visible: true, fontSize: 60, horzAlign: 'center', vertAlign: 'center',
+      color: 'rgba(255, 255, 255, 0.05)', text: '{{ symbol }}',
     },
   });
 
-  // Series 1: Nến
-  const candlestickSeries = chart.addCandlestickSeries({
-    upColor: '#089981', downColor: '#f23645',
-    borderVisible: false, wickUpColor: '#089981', wickDownColor: '#f23645',
-  });
+  const candlestickSeries = chart.addCandlestickSeries({ upColor: '#089981', downColor: '#f23645', borderVisible: false, wickUpColor: '#089981', wickDownColor: '#f23645' });
+  const volumeSeries = chart.addHistogramSeries({ color: '#26a69a', priceFormat: { type: 'volume' }, priceScaleId: '' });
+  chart.priceScale('').applyOptions({ scaleMargins: { top: 0.75, bottom: 0 } });
 
-  // Series 2: Volume (Overlay)
-  const volumeSeries = chart.addHistogramSeries({
-    color: '#26a69a',
-    priceFormat: { type: 'volume' },
-    priceScaleId: '',
-  });
-  chart.priceScale('').applyOptions({
-    scaleMargins: { top: 0.75, bottom: 0 },
-  });
+  const ma10Series = chart.addLineSeries({ color: '#2962FF', lineWidth: 1, crosshairMarkerVisible: false, lastValueVisible: false, priceLineVisible: false });
+  const ma30Series = chart.addLineSeries({ color: '#F48FB1', lineWidth: 2, crosshairMarkerVisible: false, lastValueVisible: true, priceLineVisible: false });
 
-  // Series 3: MA10 (Màu xanh dương)
-  const ma10Series = chart.addLineSeries({
-    color: '#2962FF',
-    lineWidth: 1,
-    crosshairMarkerVisible: false,
-    lastValueVisible: false, // Ẩn label ở trục giá cho đỡ rối
-    priceLineVisible: false,
-  });
-
-  // Series 4: MA30 (Màu hồng/đỏ nhạt)
-  const ma30Series = chart.addLineSeries({
-    color: '#F48FB1',
-    lineWidth: 2,
-    crosshairMarkerVisible: false,
-    lastValueVisible: true,
-    priceLineVisible: false,
-  });
-
-  // ==========================================
   // 3. XỬ LÝ DỮ LIỆU
-  // ==========================================
   let rawData = {{ history | tojson }};
 
   if (rawData && rawData.length > 0) {
     if (loader) loader.style.display = 'none';
-
     let candles = [];
     let volumes = [];
 
     rawData.forEach(d => {
-      // Fix Date
       let timeStr = d.date;
       if (timeStr && timeStr.includes('/')) {
         let parts = timeStr.split('/');
         if (parts.length === 3) timeStr = `${parts[2]}-${parts[1]}-${parts[0]}`;
       }
-
-      let volValue = Number(d.volume);
-      if (isNaN(volValue)) volValue = 0;
-
+      let volValue = Number(d.volume) || 0;
       const isUp = d.close >= d.open;
       const volColor = isUp ? 'rgba(8, 153, 129, 0.5)' : 'rgba(242, 54, 69, 0.5)';
-
       candles.push({ time: timeStr, open: d.open, high: d.high, low: d.low, close: d.close });
       volumes.push({ time: timeStr, value: volValue, color: volColor });
     });
 
-    // Sort
     candles.sort((a, b) => new Date(a.time) - new Date(b.time));
     volumes.sort((a, b) => new Date(a.time) - new Date(b.time));
 
-    // Tính toán MA
     const ma10Data = calculateSMA(candles, 10);
     const ma30Data = calculateSMA(candles, 30);
 
-    // Đổ dữ liệu vào Chart
     candlestickSeries.setData(candles);
     volumeSeries.setData(volumes);
     ma10Series.setData(ma10Data);
     ma30Series.setData(ma30Data);
-
     chart.timeScale().fitContent();
 
-    // ==========================================
-    // 4. CẬP NHẬT LEGEND KHI DI CHUỘT
-    // ==========================================
     const legendIds = {
-      open: document.getElementById('leg-open'),
-      high: document.getElementById('leg-high'),
-      low: document.getElementById('leg-low'),
-      close: document.getElementById('leg-close'),
-      vol: document.getElementById('leg-vol'),
-      ma10: document.getElementById('leg-ma10'),
+      open: document.getElementById('leg-open'), high: document.getElementById('leg-high'),
+      low: document.getElementById('leg-low'), close: document.getElementById('leg-close'),
+      vol: document.getElementById('leg-vol'), ma10: document.getElementById('leg-ma10'),
       ma30: document.getElementById('leg-ma30'),
     };
 
     chart.subscribeCrosshairMove(param => {
       if (param.time) {
-        // Lấy dữ liệu tại điểm crosshair
         const candleData = param.seriesData.get(candlestickSeries);
         const volData = param.seriesData.get(volumeSeries);
         const ma10Val = param.seriesData.get(ma10Series);
@@ -310,25 +261,105 @@
           legendIds.high.innerText = candleData.high.toLocaleString();
           legendIds.low.innerText = candleData.low.toLocaleString();
           legendIds.close.innerText = candleData.close.toLocaleString();
-          // Đổi màu close theo tăng giảm
           legendIds.close.style.color = (candleData.close >= candleData.open) ? '#089981' : '#f23645';
         }
         if (volData) legendIds.vol.innerText = volData.value.toLocaleString();
-
-        // MA có thể undefined nếu chuột ở vùng chưa đủ dữ liệu tính MA
         legendIds.ma10.innerText = ma10Val ? ma10Val.value.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ",") : '--';
         legendIds.ma30.innerText = ma30Val ? ma30Val.value.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ",") : '--';
       }
     });
-
   } else {
-    console.error("Không có dữ liệu history");
     if (loader) loader.innerHTML = '<div class="text-danger">Không có dữ liệu biểu đồ</div>';
   }
 
-  // Auto resize
-  window.addEventListener('resize', () => {
-    chart.resize(container.clientWidth, container.clientHeight);
+  window.addEventListener('resize', () => { chart.resize(container.clientWidth, container.clientHeight); });
+
+  // 4. LOGIC TÍNH TIỀN
+  const currentPrice = {{ current }};
+  // Xử lý an toàn cho biến userBalance khi chưa đăng nhập
+  const userBalance = {% if current_user.is_authenticated %}{{ current_user.balance }}{% else %}0{% endif %};
+
+  function calcTotal() {
+    const qtyInput = document.getElementById('qtyInput');
+    const totalValSpan = document.getElementById('totalVal');
+    let qty = parseInt(qtyInput.value);
+    if (isNaN(qty) || qty < 0) qty = 0;
+    const total = currentPrice * qty;
+    totalValSpan.innerText = total.toLocaleString('en-US') + " ₫";
+    if (total > userBalance) { totalValSpan.style.color = '#ff4d4d'; } else { totalValSpan.style.color = 'white'; }
+  }
+
+  function adjustQty(delta) {
+    const qtyInput = document.getElementById('qtyInput');
+    if(!qtyInput) return;
+    let currentQty = parseInt(qtyInput.value) || 0;
+    let newQty = currentQty + delta;
+    if (newQty < 0) newQty = 0;
+    qtyInput.value = newQty;
+    calcTotal();
+  }
+
+  function setQtyPercent(percent) {
+    if (currentPrice <= 0 || userBalance <= 0) return;
+    const maxQty = Math.floor(userBalance / currentPrice);
+    let targetQty = Math.floor(maxQty * percent);
+    const qtyInput = document.getElementById('qtyInput');
+    if(qtyInput) {
+        qtyInput.value = targetQty;
+        calcTotal();
+    }
+  }
+
+  // 5. AI PREDICTION
+  const predSeries = chart.addLineSeries({
+      color: '#d63031', lineWidth: 2, lineStyle: 2,
+      title: 'AI Forecast', crosshairMarkerVisible: true,
   });
+
+  function runAI() {
+      const btn = document.getElementById('btn-ai');
+      const aiPanel = document.getElementById('ai-panel');
+      const trendBadge = document.getElementById('ai-trend-badge');
+      const reasonText = document.getElementById('ai-reason-text');
+      const symbol = "{{ symbol }}";
+
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Đang xử lý...';
+      aiPanel.style.display = 'block';
+      reasonText.innerHTML = '<span class="text-secondary fst-italic">Đang kết nối tới máy chủ phân tích...</span>';
+      trendBadge.className = 'badge bg-secondary';
+      trendBadge.innerText = 'Analyzing...';
+
+      fetch(`/api/predict/${symbol}`)
+          .then(res => res.json())
+          .then(data => {
+              if(data.data && data.data.length > 0) {
+                  predSeries.setData(data.data);
+                  chart.timeScale().fitContent();
+
+                  trendBadge.innerText = data.trend;
+                  if(data.trend.includes('TĂNG')) {
+                      trendBadge.className = 'badge bg-success shadow';
+                  } else if (data.trend.includes('ĐI NGANG')) {
+                      trendBadge.className = 'badge bg-warning text-dark shadow';
+                  } else {
+                      trendBadge.className = 'badge bg-danger shadow';
+                  }
+
+                  let cleanReason = data.reason.replace(/\|/g, '<br>• ');
+                  reasonText.innerHTML = '• ' + cleanReason;
+              } else {
+                  reasonText.innerHTML = '<span class="text-danger">Không đủ dữ liệu để phân tích mã này.</span>';
+              }
+          })
+          .catch(err => {
+              console.error(err);
+              reasonText.innerHTML = '<span class="text-danger">Lỗi kết nối. Vui lòng thử lại sau.</span>';
+          })
+          .finally(() => {
+              btn.disabled = false;
+              btn.innerHTML = '<i class="bi bi-arrow-repeat"></i> Phân tích lại';
+          });
+  }
 </script>
 {% endblock %}
