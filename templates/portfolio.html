@@ -1,0 +1,124 @@
+{% extends "base.html" %} 
+{% block title %}Tài sản của tôi{% endblock %} 
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row mb-4">
+        <div class="col-md-6 mb-3">
+            <div class="card p-4 h-100">
+                <span class="text-muted text-uppercase small ls-1">Tổng tài sản ròng (NAV)</span>
+                <h2 class="fw-num text-warning mt-2">{{ "{:,.0f}".format(total_asset) }} ₫</h2>
+                <div class="mt-3">
+                    <a href="{{ url_for('trade.deposit') }}" class="btn btn-success btn-sm px-3 fw-bold"><i class="bi bi-plus-lg"></i> Nạp tiền</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6 mb-3">
+            <div class="card p-3 h-100">
+                <h6 class="text-muted small text-uppercase mb-3">Phân bổ tài sản</h6>
+                <div style="height: 200px; position: relative;">
+                    <canvas id="assetChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <span>Danh mục nắm giữ</span>
+            <span class="badge bg-secondary">{{ portfolio|length }} mã</span>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-dark table-hover mb-0 align-middle">
+                <thead>
+                    <tr class="text-secondary small text-uppercase">
+                        <th>Mã CK</th>
+                        <th class="text-end">Khối lượng</th>
+                        <th class="text-end">Giá vốn</th>
+                        <th class="text-end">Giá thị trường</th>
+                        <th class="text-end">Lãi/Lỗ</th>
+                        <th class="text-end">% Lãi/Lỗ</th>
+                        <th class="text-center">Hành động</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in portfolio %}
+                    <tr>
+                        <td class="fw-bold text-warning">{{ item.symbol }}</td>
+                        <td class="text-end fw-num">{{ "{:,}".format(item.quantity) }}</td>
+                        <td class="text-end fw-num text-muted">{{ "{:,.0f}".format(item.avg_price) }}</td>
+                        <td class="text-end fw-num">{{ "{:,.0f}".format(item.current_price) }}</td>
+                        <td class="text-end fw-num fw-bold {{ 'text-up' if item.profit > 0 else 'text-down' }}">
+                            {{ "{:+,.0f}".format(item.profit) }}
+                        </td>
+                        <td class="text-end">
+                            <span class="badge {{ 'bg-up' if item.percent > 0 else 'bg-down' }} fw-num">
+                                {{ "{:+.2f}%".format(item.percent) }}
+                            </span>
+                        </td>
+                        <td class="text-center">
+                            <a href="{{ url_for('market.stock_detail', symbol=item.symbol) }}" class="btn btn-sm btn-outline-light">
+                                <i class="bi bi-lightning-charge-fill"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="7" class="text-center py-5 text-muted">
+                            <i class="bi bi-wallet2 display-6 d-block mb-3"></i>
+                            Danh mục trống. Hãy ra "Chợ" mua gì đó đi!
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const ctx = document.getElementById('assetChart').getContext('2d');
+        
+        // Nhận dữ liệu từ Flask
+        const labels = {{ chart_labels | tojson }};
+        const data = {{ chart_values | tojson }};
+
+        new Chart(ctx, {
+            type: 'doughnut', // Hoặc 'pie' nếu thích hình tròn đặc
+            data: {
+                labels: labels,
+                datasets: [{
+                    data: data,
+                    backgroundColor: [
+                        '#ffc107', // Màu Vàng (CK 1)
+                        '#0d6efd', // Màu Xanh dương (CK 2)
+                        '#dc3545', // Màu Đỏ (CK 3)
+                        '#198754', // Màu Xanh lá (CK 4)
+                        '#6f42c1', // Màu Tím
+                        '#adb5bd'  // Màu Xám (Tiền mặt - luôn ở cuối list nếu list > màu)
+                    ],
+                    borderColor: '#212529', // Viền màu tối trùng màu nền web
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'right',
+                        labels: {
+                            color: '#adb5bd', // Màu chữ chú thích
+                            font: { size: 11 }
+                        }
+                    }
+                }
+            }
+        });
+    });
+</script>
+
+{% endblock %}
