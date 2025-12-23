@@ -1,8 +1,6 @@
 import requests
 import time
 from datetime import datetime
-
-# Header giả lập Chrome để CafeF không chặn
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
     "Content-Type": "application/json",
@@ -40,7 +38,7 @@ def get_price_history(symbol, days=365):
                         except:
                             pass
                 
-                # Fallback: Nếu vẫn = 0, thử tìm bất kỳ key nào có chữ "Volume" hoặc "KL"
+                # Nếu vẫn = 0, thử tìm bất kỳ key nào có chữ "Volume" hoặc "KL"
                 if vol == 0:
                     for k, v in row.items():
                         if ("Volume" in k or "KL" in k) and isinstance(v, (int, float, str)):
@@ -63,7 +61,7 @@ def get_price_history(symbol, days=365):
             return result[::-1]
             
     except Exception as e:
-        print(f"❌ Lỗi lấy lịch sử {symbol}: {e}")
+        print(f" Lỗi lấy lịch sử {symbol}: {e}")
     
     return []
 
@@ -78,6 +76,6 @@ def get_current_price(symbol):
             real_price = history[-1]["close"]
             return real_price
     except Exception as e:
-        print(f"❌ Lỗi lấy giá {symbol}: {e}")
+        print(f" Lỗi lấy giá {symbol}: {e}")
         
     return 0
