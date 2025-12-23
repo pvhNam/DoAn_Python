@@ -14,11 +14,12 @@ market_bp = Blueprint("market", __name__)
 def stock_detail(symbol):
     symbol = symbol.upper()
     
-    # 1. Lấy giá hiện tại
+    # Lấy giá hiện tại
     current_price = get_current_price(symbol)
     if current_price == 0:
         current_price = 10000 
     
+    # 2. Lấy dữ liệu lịch sử
     history = []
     conn = None
     cursor = None
@@ -75,7 +76,9 @@ def stock_detail(symbol):
         current=current_price, 
         history=history
     )
-# DANH SÁCH THỊ TRƯỜNG
+
+# --- ROUTE 2: DANH SÁCH THỊ TRƯỜNG (ĐÃ MỞ CÔNG KHAI) ---
+# Không còn @login_required ở đây nữa
 @market_bp.route("/market")
 def market():
     conn = get_db()
