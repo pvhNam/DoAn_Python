@@ -5,8 +5,8 @@ import mysql.connector
 
 # --- CẤU HÌNH DATABASE ---
 DB_CONFIG = {
-    'user': 'python',       # Thay bằng user của bạn
-    'password': '12345',       # Thay bằng pass của bạn
+    'user': 'stock_admin',       # Thay bằng user của bạn
+    'password': 'password123',       # Thay bằng pass của bạn
     'host': 'localhost',
     'database': 'python', # Tên database chứa bảng stock_history
     'raise_on_warnings': True
