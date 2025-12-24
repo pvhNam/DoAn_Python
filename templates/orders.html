@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+{% block title %}Sổ Lệnh Của Tôi{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4 p-3 rounded" style="background-color: #1e222d; border: 1px solid #2a2e39;">
+        <div>
+            <h4 class="text-warning fw-bold m-0"><i class="bi bi-journal-text"></i> SỔ LỆNH GIAO DỊCH</h4>
+            <small class="text-muted">Quản lý tất cả các lệnh đặt Mua/Bán của bạn</small>
+        </div>
+        <div>
+            <span class="badge bg-secondary fs-6">Tổng lệnh: {{ orders|length }}</span>
+        </div>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+            <div class="alert alert-{{ category }} alert-dismissible fade show shadow-sm" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <div class="card shadow-sm border-0" style="background-color: #1e222d;">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-dark table-hover mb-0 align-middle" style="font-size: 0.95rem;">
+                    <thead class="text-secondary text-uppercase" style="background-color: #131722; font-size: 0.8rem;">
+                        <tr>
+                            <th class="py-3 ps-4">Thời gian</th>
+                            <th class="py-3">Mã CP</th>
+                            <th class="py-3 text-center">Loại</th>
+                            <th class="py-3 text-end">Khối lượng</th>
+                            <th class="py-3 text-end">Giá đặt</th>
+                            <th class="py-3 text-end">Tổng giá trị</th>
+                            <th class="py-3 text-center">Trạng thái</th>
+                            <th class="py-3 text-center">Hành động</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if orders %}
+                            {% for order in orders %}
+                            <tr style="border-bottom: 1px solid #2a2e39;">
+                                <td class="ps-4 text-muted">{{ order.created_at.strftime('%H:%M %d/%m/%Y') }}</td>
+                                <td class="fw-bold text-white">
+                                    <a href="{{ url_for('market.stock_detail', symbol=order.symbol) }}" class="text-decoration-none text-white hover-warning">
+                                        {{ order.symbol }}
+                                    </a>
+                                </td>
+                                <td class="text-center">
+                                    <span class="badge {{ 'bg-success' if order.side == 'BUY' else 'bg-danger' }} bg-opacity-75" style="width: 60px;">
+                                        {{ "MUA" if order.side == 'BUY' else "BÁN" }}
+                                    </span>
+                                </td>
+                                <td class="text-end font-monospace">{{ "{:,}".format(order.quantity) }}</td>
+                                <td class="text-end font-monospace text-info">
+                                    {% if order.order_type == 'MP' %}
+                                        MP
+                                    {% else %}
+                                        {{ "{:,.0f}".format(order.price) }} ₫
+                                    {% endif %}
+                                </td>
+                                <td class="text-end font-monospace text-white">
+                                    {{ "{:,.0f}".format(order.price * order.quantity) }} ₫
+                                </td>
+                                <td class="text-center">
+                                    {% if order.status == 'PENDING' %}
+                                        <span class="badge bg-warning text-dark"><i class="bi bi-clock"></i> Đang chờ</span>
+                                    {% elif order.status == 'MATCHED' %}
+                                        <span class="badge bg-success"><i class="bi bi-check-circle"></i> Đã khớp</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary text-decoration-line-through">Đã hủy</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-center">
+                                    {% if order.status == 'PENDING' %}
+                                        <form action="{{ url_for('trade.cancel_order', order_id=order.id) }}" method="POST" onsubmit="return confirm('Bạn chắc chắn muốn hủy lệnh này?');">
+                                            <button type="submit" class="btn btn-outline-danger btn-sm py-1 px-3">
+                                                Hủy lệnh
+                                            </button>
+                                        </form>
+                                    {% else %}
+                                        <span class="text-muted small">--</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="8" class="text-center py-5 text-muted">
+                                    <i class="bi bi-inbox fs-1 d-block mb-2"></i>
+                                    Bạn chưa thực hiện lệnh nào.
+                                </td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <div class="text-center mt-4">
+        <a href="{{ url_for('market.market') }}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> Quay lại thị trường
+        </a>
+    </div>
+</div>
+{% endblock %}

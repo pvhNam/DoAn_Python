@@ -233,7 +233,26 @@ def cancel_order(order_id):
     finally:
         cursor.close(); conn.close()
     return redirect(request.referrer)
-
+# --- 5. TRANG QUẢN LÝ SỔ LỆNH RIÊNG (MỚI) ---
+@trade_bp.route("/orders")
+@login_required
+def orders_page():
+    conn = get_db()
+    cursor = conn.cursor(dictionary=True)
+    
+    # Lấy toàn bộ lệnh của user, sắp xếp mới nhất lên đầu
+    cursor.execute("""
+        SELECT * FROM orders 
+        WHERE user_id = %s 
+        ORDER BY created_at DESC
+    """, (current_user.id,))
+    
+    all_orders = cursor.fetchall()
+    
+    cursor.close()
+    conn.close()
+    
+    return render_template("orders.html", orders=all_orders)
 # --- 4. PORTFOLIO & HISTORY ---
 @trade_bp.route("/portfolio")
 @login_required
