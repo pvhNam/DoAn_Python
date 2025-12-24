@@ -66,8 +66,6 @@ def stock_detail(symbol):
         # Đóng kết nối an toàn
         if cursor:
             cursor.close()
-        if conn and conn.is_connected():
-            conn.close()
 
     return render_template(
         "stock_detail.html", 
@@ -95,7 +93,7 @@ def market():
             "ref": float(row['ref_price']),
             "ceil": float(row['ceil_price']),
             "floor": float(row['floor_price']),
-            "total_vol": row['total_vol'],
+            "total_vol": int(row['total_vol']),  # Đảm bảo int và lấy từ DB (đã liên kết)
             "vol_fake": vol_fake, 
             "buy_price_1": price - 50,
             "buy_vol_1": vol_fake * 2,
