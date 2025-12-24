@@ -5,8 +5,8 @@ import mysql.connector
 
 # --- CẤU HÌNH DATABASE ---
 DB_CONFIG = {
-    'user': 'python',       # Thay bằng user của bạn
-    'password': '12345',       # Thay bằng pass của bạn
+    'user': 'stock_admin',       # Thay bằng user của bạn
+    'password': 'password123',       # Thay bằng pass của bạn
     'host': 'localhost',
     'database': 'python', # Tên database chứa bảng stock_history
     'raise_on_warnings': True
@@ -97,17 +97,16 @@ def get_price_history(symbol, days=365):
             result = []
             
             for row in raw_data:
-                # --- Xử lý Volume ---
+                # --- Xử lý Volume (ĐÃ FIX) ---
                 vol = 0
-                # (Giữ nguyên logic Volume của bạn vì nó đang ổn)
-                keys = ["nmVolume", "nmTotalVolume", "KlgiaoDichKhopLenh", "TotalVolume", "Volume", "KLKhopLenh"]
+                keys = ["KhoiLuongKhopLenh"]
                 for k in keys:
                     if k in row and row[k] is not None:
                         try:
-                            v_str = str(row[k]).split('.')[0]
-                            v_clean = v_str.replace(",", "").replace(".", "")
-                            if v_clean.isdigit():
-                                val = int(v_clean)
+                            # Clean toàn bộ: loại bỏ dấu . (hàng nghìn VN) và , (nếu có)
+                            v_str = str(row[k]).replace('.', '').replace(',', '')
+                            if v_str.isdigit():
+                                val = int(v_str)
                                 if val > 0:
                                     vol = val
                                     break
@@ -118,10 +117,13 @@ def get_price_history(symbol, days=365):
                     for k, v in row.items():
                         if ("Volume" in k or "KL" in k) and isinstance(v, (int, float, str)):
                             try:
-                                v_clean = int(str(v).replace(",", "").replace(".", ""))
-                                if v_clean > 0:
-                                    vol = v_clean
-                                    break
+                                # Tương tự, clean trước khi convert
+                                v_str = str(v).replace('.', '').replace(',', '')
+                                if v_str.isdigit():
+                                    v_clean = int(v_str)
+                                    if v_clean > 0:
+                                        vol = v_clean
+                                        break
                             except:
                                 pass
 
@@ -153,7 +155,7 @@ def get_price_history(symbol, days=365):
                     "high": "{:.2f}".format(h),
                     "low":  "{:.2f}".format(l),
                     "close":"{:.2f}".format(c),
-                    "volume": vol 
+                    "volume": vol
                 })
             return result
     except Exception as e:
@@ -168,7 +170,7 @@ def scan_all_symbols(symbol_list):
         print(f"Đang xử lý: {symbol}...")
         
         # 1. Lấy dữ liệu từ API
-        data = get_price_history(symbol, days=5475) # Lấy 1 năm
+        data = get_price_history(symbol, days=365) # Sửa lại thành 365 ngày (1 năm)
         
         # 2. Lưu vào DB
         if data:
