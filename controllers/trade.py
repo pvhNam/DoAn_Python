@@ -28,11 +28,11 @@ def deposit():
             flash("Số tiền không hợp lệ!", "danger")
     return render_template('deposit.html')
 
-# --- 2. XỬ LÝ ĐẶT LỆNH (THUẦN P2P CHO LO) ---
+# XỬ LÝ ĐẶT LỆNH 
 @trade_bp.route("/trade", methods=["POST"])
 @login_required
 def trade():
-    # A. Lấy dữ liệu
+    # Lấy dữ liệu
     symbol = request.form.get("symbol")
     side = request.form.get("side")          
     order_type = request.form.get("order_type") 
@@ -48,7 +48,7 @@ def trade():
         flash("Dữ liệu nhập vào không hợp lệ", "danger")
         return redirect(url_for("market.stock_detail", symbol=symbol))
 
-    # B. Lấy giá thị trường (chỉ để tham khảo hoặc dùng cho MP)
+    #Lấy giá thị trường (chỉ để tham khảo hoặc dùng cho MP)
     market_price = get_current_price(symbol)
     if market_price == 0:
         flash("Lỗi kết nối thị trường!", "danger")
@@ -62,7 +62,7 @@ def trade():
     cursor = conn.cursor(dictionary=True)
 
     try:
-        # C. KIỂM TRA SỨC MUA / KHO
+        # KIỂM TRA SỨC MUA / KHO
         if side == 'BUY':
             if float(current_user.balance) < total_val:
                 flash("Số dư không đủ!", "danger")
@@ -76,7 +76,7 @@ def trade():
                 flash("Không đủ cổ phiếu!", "danger")
                 return redirect(url_for("market.stock_detail", symbol=symbol))
 
-        # D. KHÓA TÀI SẢN (LOCK ASSETS)
+        # KHÓA TÀI SẢN (LOCK ASSETS)
         if side == 'BUY':
              cursor.execute("UPDATE users SET balance = balance - %s WHERE id = %s", (total_val, current_user.id))
         else: # SELL
@@ -86,7 +86,7 @@ def trade():
              else:
                  cursor.execute("UPDATE portfolio SET quantity = %s WHERE id = %s", (new_qty_port, port["id"]))
 
-        # --- E. MATCHING ENGINE (P2P) ---
+        #MATCHING ENGINE 
         match_found = False
         partner_order = None
 
@@ -111,7 +111,7 @@ def trade():
         partner_order = cursor.fetchone()
 
         if partner_order:
-            # === 1. CÓ NGƯỜI KHỚP (P2P MATCH) ===
+            # CÓ NGƯỜI KHỚP (MATCH)
             match_found = True
             p_id = partner_order['id']
             p_user_id = partner_order['user_id']
@@ -179,11 +179,11 @@ def trade():
             flash(f"Đã khớp lệnh P2P! Giá: {p_price:,.0f}", "success")
         
         else:
-            # === 2. KHÔNG CÓ P2P ===
+            # KHÔNG CÓ P2P 
             status = 'PENDING'
             execution_price = my_price
             
-            # --- CHỈ KHỚP NGAY NẾU LÀ LỆNH MP (THỊ TRƯỜNG) ---
+            # CHỈ KHỚP NGAY NẾU LÀ LỆNH MP (THỊ TRƯỜNG) 
             # Lệnh LO sẽ LUÔN LUÔN vào trạng thái PENDING nếu không tìm thấy đối tác
             
             if order_type == 'MP':
@@ -245,7 +245,7 @@ def trade():
 
     return redirect(url_for("market.stock_detail", symbol=symbol))
 
-# --- 3. HỦY LỆNH (GIỮ NGUYÊN) ---
+# HỦY LỆNH (GIỮ NGUYÊN) 
 @trade_bp.route("/cancel_order/<int:order_id>", methods=["POST"])
 @login_required
 def cancel_order(order_id):
@@ -275,7 +275,7 @@ def cancel_order(order_id):
     finally:
         cursor.close(); conn.close()
     return redirect(request.referrer)
-# --- 5. TRANG QUẢN LÝ SỔ LỆNH RIÊNG (MỚI) ---
+# TRANG QUẢN LÝ SỔ LỆNH 
 @trade_bp.route("/orders")
 @login_required
 def orders_page():
@@ -295,7 +295,7 @@ def orders_page():
     conn.close()
     
     return render_template("orders.html", orders=all_orders)
-# --- 4. PORTFOLIO & HISTORY (GIỮ NGUYÊN) ---
+# PORTFOLIO 
 @trade_bp.route("/portfolio")
 @login_required
 def portfolio():
@@ -310,7 +310,7 @@ def portfolio():
         labels.append(p["symbol"]); vals.append(val)
         data.append({"symbol": p["symbol"], "quantity": p["quantity"], "avg_price": p["avg_price"], "current_price": cur, "profit": val - (float(p["avg_price"])*p["quantity"]), "percent": 0})
     return render_template("portfolio.html", portfolio=data, total_asset=total_asset, chart_labels=labels, chart_values=vals)
-
+# HISTORY 
 @trade_bp.route("/history")
 @login_required
 def history():
