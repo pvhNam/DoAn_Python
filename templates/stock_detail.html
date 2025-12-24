@@ -1,0 +1,402 @@
+{% extends "base.html" %} 
+{% block title %}{{ symbol }} - Chi tiết cổ phiếu{% endblock %} 
+{% block content %}
+
+<style>
+  /* Style cũ */
+  .chart-legend { position: absolute; top: 60px; left: 12px; z-index: 100; font-family: "Roboto", sans-serif; font-size: 12px; line-height: 18px; font-weight: 500; color: #d1d4dc; pointer-events: none; background-color: rgba(19, 23, 34, 0.7); padding: 6px; border-radius: 4px; }
+  .legend-item { display: flex; gap: 10px; }
+  
+  /* Style mới cho Tabs và Sổ lệnh */
+  .nav-pills .nav-link { color: #aaa; background-color: rgba(255,255,255,0.05); font-size: 0.85rem; border-radius: 0; }
+  .nav-pills .nav-link:first-child { border-top-left-radius: 4px; border-bottom-left-radius: 4px; }
+  .nav-pills .nav-link:last-child { border-top-right-radius: 4px; border-bottom-right-radius: 4px; }
+  .nav-pills .nav-link.active { background-color: #2962ff !important; color: white; font-weight: bold; }
+  
+  .btn-buy-select.active { background-color: #089981 !important; color: white; border-color: #089981 !important; }
+  .btn-sell-select.active { background-color: #f23645 !important; color: white; border-color: #f23645 !important; }
+
+  .order-table th { font-weight: 500; color: #888; font-size: 0.75rem; }
+  .order-table td { vertical-align: middle; font-size: 0.8rem; border-color: #333; }
+  .order-book-scroll { max-height: calc(100vh - 200px); overflow-y: auto; }
+  .order-book-scroll::-webkit-scrollbar { width: 4px; }
+  .order-book-scroll::-webkit-scrollbar-thumb { background: #444; border-radius: 2px; }
+</style>
+
+<div class="container-fluid px-4 mt-2">
+  {% with messages = get_flashed_messages(with_categories=true) %} 
+    {% if messages %} 
+      {% for category, message in messages %}
+      <div class="alert alert-{{ category }} alert-dismissible fade show shadow-sm" role="alert">
+        <strong>Thông báo:</strong> {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
+      {% endfor %} 
+    {% endif %} 
+  {% endwith %}
+</div>
+
+<div class="container-fluid p-0">
+  <div class="row g-0" style="height: calc(100vh - 50px)">
+    
+    <div class="col-md-9 border-end border-secondary position-relative d-flex flex-column">
+      <div class="chart-header p-2 d-flex align-items-center gap-4 px-4" style="background: #131722; border-bottom: 1px solid #2a2e39; height: 50px;">
+        <h4 class="m-0 fw-bold text-warning">{{ symbol }}</h4>
+        <div class="d-flex align-items-end gap-2">
+          <span class="text-white fs-4 fw-bold lh-1">{{ "{:,.0f}".format(current) }}</span>
+          <span class="fs-6 text-muted mb-1">VNĐ</span>
+        </div>
+        {% if history and history|length > 1 %} 
+          {% set change = current - history[-1].close %} 
+          {% set pct = (change / history[-1].close) * 100 %}
+          <div class="{{ 'text-success' if change >= 0 else 'text-danger' }} d-flex align-items-center gap-2 fw-bold">
+            <span class="fs-5">{{ "{:+,.0f}".format(change) }}</span>
+            <span class="badge {{ 'bg-success' if change >= 0 else 'bg-danger' }} bg-opacity-25 text-white border {{ 'border-success' if change >= 0 else 'border-danger' }}">
+              {{ "{:+.2f}%".format(pct) }}
+            </span>
+          </div>
+        {% endif %}
+      </div>
+
+      <div id="chart-container" style="width: 100%; flex-grow: 1; position: relative">
+        <div id="tv-chart"></div>
+        <div class="chart-legend" id="chart-legend">
+          <div class="legend-item text-white fs-6 mb-1">{{ symbol }}</div>
+          <div class="legend-item">
+            <span class="text-success">O: <span id="leg-open">--</span></span>
+            <span class="text-danger">H: <span id="leg-high">--</span></span>
+            <span class="text-info">L: <span id="leg-low">--</span></span>
+            <span class="text-warning">C: <span id="leg-close">--</span></span>
+          </div>
+          <div class="legend-item mt-1"><span style="color: #768f40">Vol: <span id="leg-vol">--</span></span></div>
+        </div>
+        <div id="chart-loader" class="position-absolute top-50 start-50 translate-middle text-center">
+          <div class="spinner-border text-warning" role="status"></div>
+          <div class="text-muted small mt-2">Đang tải dữ liệu {{ symbol }}...</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-3 bg-dark-panel d-flex flex-column" style="background: #1e222d; border-left: 1px solid #2a2e39;">
+      
+      <div class="p-3 pb-0">
+          <ul class="nav nav-pills nav-fill" id="sidebarTab" role="tablist">
+              <li class="nav-item" role="presentation">
+                  <button class="nav-link active" id="trade-tab" data-bs-toggle="pill" data-bs-target="#pills-trade" type="button">
+                      ĐẶT LỆNH
+                  </button>
+              </li>
+              <li class="nav-item" role="presentation">
+                  <button class="nav-link" id="book-tab" data-bs-toggle="pill" data-bs-target="#pills-book" type="button">
+                      SỔ LỆNH
+                  </button>
+              </li>
+          </ul>
+      </div>
+
+      <div class="tab-content flex-grow-1 overflow-hidden" id="sidebarTabContent">
+        
+        <div class="tab-pane fade show active h-100 overflow-auto p-3" id="pills-trade" role="tabpanel">
+            {% if current_user.is_authenticated %}
+                <form action="{{ url_for('trade.trade') }}" method="post" id="tradeForm">
+                  <input type="hidden" name="symbol" value="{{ symbol }}" />
+                  <input type="hidden" name="side" id="sideInput" value="BUY">
+
+                  <div class="d-flex gap-2 mb-3">
+                      <button type="button" class="btn btn-outline-secondary w-50 fw-bold btn-buy-select active" onclick="setSide('BUY', this)">MUA</button>
+                      <button type="button" class="btn btn-outline-secondary w-50 fw-bold btn-sell-select" onclick="setSide('SELL', this)">BÁN</button>
+                  </div>
+
+                  <div class="d-flex justify-content-between mb-3 p-2 rounded bg-black bg-opacity-25 border border-secondary">
+                    <span class="text-secondary small">Khả dụng:</span>
+                    <span class="text-warning fw-bold">{{ "{:,.0f}".format(current_user.balance) }} ₫</span>
+                  </div>
+
+                  <div class="row g-2 mb-3">
+                      <div class="col-4">
+                          <label class="text-secondary small mb-1">Loại</label>
+                          <select name="order_type" id="orderType" class="form-select form-select-sm bg-dark text-white border-secondary" onchange="togglePriceInput()">
+                              <option value="MP">MP</option>
+                              <option value="LO">LO</option>
+                          </select>
+                      </div>
+                      <div class="col-8">
+                          <label class="text-secondary small mb-1">Giá đặt (VNĐ)</label>
+                          <input type="number" name="price_limit" id="priceInput" class="form-control form-control-sm bg-dark text-white border-secondary fw-bold" 
+                                 placeholder="Thị trường" disabled value="{{ current }}" step="100" oninput="calcTotal()">
+                      </div>
+                  </div>
+
+                  <div class="mb-3">
+                    <label class="text-secondary small mb-1">Khối lượng</label>
+                    <div class="input-group input-group-sm">
+                      <button type="button" class="btn btn-outline-secondary" onclick="adjustQty(-100)">-</button>
+                      <input type="number" name="quantity" id="qtyInput" class="form-control bg-dark border-secondary text-white text-center fw-bold" placeholder="0" step="100" min="100" required oninput="calcTotal()" />
+                      <button type="button" class="btn btn-outline-secondary" onclick="adjustQty(100)">+</button>
+                    </div>
+                  </div>
+
+                  <div class="mb-3 d-flex justify-content-between gap-1">
+                    <button type="button" onclick="setQtyPercent(0.25)" class="btn btn-xs btn-outline-secondary flex-fill" style="font-size: 11px;">25%</button>
+                    <button type="button" onclick="setQtyPercent(0.5)" class="btn btn-xs btn-outline-secondary flex-fill" style="font-size: 11px;">50%</button>
+                    <button type="button" onclick="setQtyPercent(1)" class="btn btn-xs btn-outline-secondary flex-fill" style="font-size: 11px;">All</button>
+                  </div>
+
+                  <div class="mb-3 text-end">
+                    <span class="text-secondary small me-2">Tổng giá trị:</span>
+                    <span class="fs-6 fw-bold text-white" id="totalVal">0 ₫</span>
+                  </div>
+
+                  <div class="d-grid">
+                      <button type="submit" id="submitBtn" class="btn btn-success fw-bold text-uppercase py-2 shadow-lg">
+                          ĐẶT LỆNH MUA
+                      </button>
+                  </div>
+                </form>
+            
+            {% else %}
+                <div class="text-center py-5">
+                    <i class="bi bi-lock-fill text-secondary" style="font-size: 2rem;"></i>
+                    <p class="text-muted mt-3 small">Vui lòng đăng nhập để giao dịch.</p>
+                    <a href="{{ url_for('auth.login') }}" class="btn btn-warning btn-sm fw-bold">ĐĂNG NHẬP</a>
+                </div>
+            {% endif %}
+
+            <hr class="border-secondary my-3">
+            
+            <div class="d-grid">
+                <button onclick="runAI()" id="btn-ai" class="btn btn-outline-info btn-sm fw-bold py-2" style="border-style: dashed;">
+                    <i class="bi bi-robot"></i> PHÂN TÍCH AI
+                </button>
+            </div>
+            <div id="ai-panel" class="mt-3 p-2 rounded border border-info bg-dark bg-opacity-50" style="display: none; font-size: 0.8rem;">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <span class="text-info fw-bold">AI Signal</span>
+                    <span id="ai-trend-badge" class="badge bg-secondary">Analyzing...</span>
+                </div>
+                <p id="ai-reason-text" class="text-white mb-0 small text-justify">Đang kết nối...</p>
+            </div>
+        </div>
+
+        <div class="tab-pane fade h-100 order-book-scroll" id="pills-book" role="tabpanel">
+            {% if order_book %}
+            <table class="table table-dark table-striped table-hover mb-0 order-table">
+                <thead class="sticky-top bg-dark">
+                    <tr>
+                        <th class="ps-3">Lệnh</th>
+                        <th class="text-end">Giá</th>
+                        <th class="text-end">KL</th>
+                        <th class="text-end pe-3">TT</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for order in order_book %}
+                    <tr>
+                        <td class="ps-3">
+                            <span class="{{ 'text-success' if order.side == 'BUY' else 'text-danger' }} fw-bold">
+                                {{ "MUA" if order.side == 'BUY' else "BÁN" }}
+                            </span><br>
+                            <span class="text-muted" style="font-size: 10px">{{ order.created_at.strftime('%H:%M') }}</span>
+                        </td>
+                        <td class="text-end text-white">
+                            {% if order.order_type == 'MP' %}
+                                <span class="badge bg-secondary" style="font-size: 9px">MP</span>
+                            {% else %}
+                                {{ "{:,.0f}".format(order.price) }}
+                            {% endif %}
+                        </td>
+                        <td class="text-end text-white">{{ "{:,}".format(order.quantity) }}</td>
+                        <td class="text-end pe-3">
+                            {% if order.status == 'PENDING' %}
+                                <form action="{{ url_for('trade.cancel_order', order_id=order.id) }}" method="POST" style="display:inline;">
+                                    <button type="submit" class="btn btn-outline-warning btn-sm py-0 px-1" style="font-size: 10px; border-style: dashed" title="Hủy lệnh">
+                                        Chờ <i class="bi bi-x"></i>
+                                    </button>
+                                </form>
+                            {% elif order.status == 'MATCHED' %}
+                                <span class="text-success fw-bold" style="font-size: 10px"><i class="bi bi-check2"></i> Khớp</span>
+                            {% else %}
+                                <span class="text-muted" style="font-size: 10px; text-decoration: line-through;">Hủy</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+                <div class="text-center text-muted py-5 mt-4">
+                    <i class="bi bi-journal-x fs-1 opacity-50"></i>
+                    <p class="small mt-2">Chưa có lệnh nào.</p>
+                </div>
+            {% endif %}
+        </div>
+      </div>
+      
+      <div class="p-2 border-top border-secondary text-center">
+        <a href="{{ url_for('market.market') }}" class="text-decoration-none text-secondary small hover-white">
+          <i class="bi bi-arrow-left"></i> Quay lại
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/lightweight-charts@4.1.1/dist/lightweight-charts.standalone.production.js"></script>
+
+<script>
+  // 1. JS CHART (KHÔNG THAY ĐỔI)
+  function calculateSMA(data, count) {
+    var avg = function (data) {
+      var sum = 0; var c = 0;
+      for (var i = 0; i < data.length; i++) { sum += data[i].close; c++; }
+      return sum / c;
+    };
+    var result = [];
+    for (var i = count - 1; i < data.length; i++) {
+      var val = avg(data.slice(i - count + 1, i + 1));
+      result.push({ time: data[i].time, value: val });
+    }
+    return result;
+  }
+
+  const container = document.getElementById('tv-chart');
+  const loader = document.getElementById('chart-loader');
+  container.style.height = "100%";
+  if (container.clientHeight === 0) container.style.height = "500px";
+
+  const chart = LightweightCharts.createChart(container, {
+    layout: { textColor: '#d1d4dc', background: { type: 'solid', color: '#131722' } },
+    grid: { vertLines: { color: '#2a2e39', style: 1 }, horzLines: { color: '#2a2e39', style: 1 } },
+    rightPriceScale: { visible: true, scaleMargins: { top: 0.1, bottom: 0.2 }, borderColor: '#2a2e39' },
+    timeScale: { timeVisible: true, secondsVisible: false, borderColor: '#2a2e39', rightOffset: 5 },
+    crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
+    watermark: { visible: true, fontSize: 60, horzAlign: 'center', vertAlign: 'center', color: 'rgba(255, 255, 255, 0.05)', text: '{{ symbol }}', },
+  });
+
+  const candlestickSeries = chart.addCandlestickSeries({ upColor: '#089981', downColor: '#f23645', borderVisible: false, wickUpColor: '#089981', wickDownColor: '#f23645' });
+  const volumeSeries = chart.addHistogramSeries({ color: '#26a69a', priceFormat: { type: 'volume' }, priceScaleId: '' });
+  chart.priceScale('').applyOptions({ scaleMargins: { top: 0.75, bottom: 0 } });
+  const ma10Series = chart.addLineSeries({ color: '#2962FF', lineWidth: 1, crosshairMarkerVisible: false, lastValueVisible: false, priceLineVisible: false });
+  const ma30Series = chart.addLineSeries({ color: '#F48FB1', lineWidth: 2, crosshairMarkerVisible: false, lastValueVisible: true, priceLineVisible: false });
+
+  let rawData = JSON.parse('{{ history | tojson | safe }}');
+  if (rawData && rawData.length > 0) {
+    if (loader) loader.style.display = 'none';
+    let candles = []; let volumes = [];
+    rawData.forEach(d => {
+      let timeStr = d.date;
+      if (timeStr && timeStr.includes('/')) { let parts = timeStr.split('/'); if (parts.length === 3) timeStr = `${parts[2]}-${parts[1]}-${parts[0]}`; }
+      let volValue = Number(d.volume) || 0;
+      const isUp = d.close >= d.open;
+      const volColor = isUp ? 'rgba(8, 153, 129, 0.5)' : 'rgba(242, 54, 69, 0.5)';
+      candles.push({ time: timeStr, open: d.open, high: d.high, low: d.low, close: d.close });
+      volumes.push({ time: timeStr, value: volValue, color: volColor });
+    });
+    candles.sort((a, b) => new Date(a.time) - new Date(b.time));
+    volumes.sort((a, b) => new Date(a.time) - new Date(b.time));
+
+    candlestickSeries.setData(candles);
+    volumeSeries.setData(volumes);
+    ma10Series.setData(calculateSMA(candles, 10));
+    ma30Series.setData(calculateSMA(candles, 30));
+    chart.timeScale().fitContent();
+
+    // Legend Logic
+    const legendIds = { open: document.getElementById('leg-open'), high: document.getElementById('leg-high'), low: document.getElementById('leg-low'), close: document.getElementById('leg-close'), vol: document.getElementById('leg-vol') };
+    chart.subscribeCrosshairMove(param => {
+      if (param.time) {
+        const candleData = param.seriesData.get(candlestickSeries);
+        const volData = param.seriesData.get(volumeSeries);
+        if (candleData) {
+          legendIds.open.innerText = candleData.open.toLocaleString();
+          legendIds.high.innerText = candleData.high.toLocaleString();
+          legendIds.low.innerText = candleData.low.toLocaleString();
+          legendIds.close.innerText = candleData.close.toLocaleString();
+          legendIds.close.style.color = (candleData.close >= candleData.open) ? '#089981' : '#f23645';
+        }
+        if (volData) legendIds.vol.innerText = volData.value.toLocaleString();
+      }
+    });
+  } else { if (loader) loader.innerHTML = '<div class="text-danger">Không có dữ liệu</div>'; }
+  window.addEventListener('resize', () => { chart.resize(container.clientWidth, container.clientHeight); });
+
+  // 2. JS FORM ĐẶT LỆNH & UI
+  const currentPrice = Number("{{ current }}");
+  const userBalance = Number("{% if current_user.is_authenticated %}{{ current_user.balance }}{% else %}0{% endif %}");
+  let currentSide = 'BUY';
+
+  function setSide(side, btn) {
+      currentSide = side;
+      document.getElementById('sideInput').value = side;
+      document.querySelectorAll('.btn-buy-select, .btn-sell-select').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+
+      const sBtn = document.getElementById('submitBtn');
+      if(side === 'BUY') {
+          sBtn.className = 'btn btn-success fw-bold text-uppercase py-2 shadow-lg';
+          sBtn.innerText = 'ĐẶT LỆNH MUA';
+      } else {
+          sBtn.className = 'btn btn-danger fw-bold text-uppercase py-2 shadow-lg';
+          sBtn.innerText = 'ĐẶT LỆNH BÁN';
+      }
+      calcTotal();
+  }
+
+  function togglePriceInput() {
+      const type = document.getElementById('orderType').value;
+      const pInp = document.getElementById('priceInput');
+      if (type === 'MP') {
+          pInp.disabled = true; pInp.value = currentPrice; pInp.placeholder = "Thị trường";
+      } else { pInp.disabled = false; }
+      calcTotal();
+  }
+
+  function calcTotal() {
+      const qty = parseInt(document.getElementById('qtyInput').value) || 0;
+      let price = parseFloat(document.getElementById('priceInput').value);
+      if (document.getElementById('orderType').value === 'MP' || !price) price = currentPrice;
+
+      const total = price * qty;
+      const tSpan = document.getElementById('totalVal');
+      tSpan.innerText = total.toLocaleString('en-US') + " ₫";
+      if (currentSide === 'BUY' && total > userBalance) tSpan.style.color = '#ff4d4d';
+      else tSpan.style.color = 'white';
+  }
+
+  function adjustQty(d) {
+      const q = document.getElementById('qtyInput');
+      let v = (parseInt(q.value) || 0) + d;
+      if(v < 0) v = 0; q.value = v; calcTotal();
+  }
+
+  function setQtyPercent(pct) {
+      if(currentPrice > 0 && userBalance > 0) {
+          let max = Math.floor(userBalance / currentPrice);
+          document.getElementById('qtyInput').value = Math.floor(max * pct);
+          calcTotal();
+      }
+  }
+
+  // 3. AI PREDICTION
+  const predSeries = chart.addLineSeries({ color: '#d63031', lineWidth: 2, lineStyle: 2, title: 'AI Forecast', crosshairMarkerVisible: true });
+  function runAI() {
+      const btn = document.getElementById('btn-ai');
+      const panel = document.getElementById('ai-panel');
+      const badge = document.getElementById('ai-trend-badge');
+      const txt = document.getElementById('ai-reason-text');
+      const symbol = "{{ symbol }}";
+
+      btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>...';
+      panel.style.display = 'block';
+      fetch(`/api/predict/${symbol}`).then(r => r.json()).then(d => {
+          if(d.data && d.data.length > 0) {
+              predSeries.setData(d.data); chart.timeScale().fitContent();
+              badge.innerText = d.trend;
+              badge.className = d.trend.includes('TĂNG') ? 'badge bg-success shadow' : (d.trend.includes('NGANG') ? 'badge bg-warning text-dark shadow' : 'badge bg-danger shadow');
+              txt.innerHTML = '• ' + d.reason.replace(/\|/g, '<br>• ');
+          } else { txt.innerHTML = '<span class="text-danger">Thiếu dữ liệu.</span>'; }
+      }).catch(e => { console.error(e); txt.innerHTML = '<span class="text-danger">Lỗi kết nối.</span>'; })
+      .finally(() => { btn.disabled = false; btn.innerHTML = '<i class="bi bi-robot"></i> PHÂN TÍCH AI'; });
+  }
+</script>
+{% endblock %}
