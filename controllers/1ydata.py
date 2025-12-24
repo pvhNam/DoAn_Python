@@ -5,8 +5,8 @@ import mysql.connector
 
 # --- CẤU HÌNH DATABASE ---
 DB_CONFIG = {
-    'user': 'stock_admin',       
-    'password': 'password123',       
+    'user': 'root',       
+    'password': '123456',       
     'host': 'localhost',
     'database': 'python', 
     'raise_on_warnings': True,

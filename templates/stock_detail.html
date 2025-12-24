@@ -1,37 +1,50 @@
-{% extends "base.html" %} 
-{% block title %}{{ symbol }} - Chi tiết cổ phiếu{% endblock %} 
+{% extends "base.html" %}
+{% block title %}{{ symbol }} - Chi tiết cổ phiếu{% endblock %}
 {% block content %}
 
 <style>
   .chart-legend {
-    position: absolute; top: 60px; left: 12px; z-index: 100;
-    font-family: "Roboto", sans-serif; font-size: 12px;
-    line-height: 18px; font-weight: 500; color: #d1d4dc;
-    pointer-events: none; background-color: rgba(19, 23, 34, 0.7);
-    padding: 6px; border-radius: 4px;
+    position: absolute;
+    top: 60px;
+    left: 12px;
+    z-index: 100;
+    font-family: "Roboto", sans-serif;
+    font-size: 12px;
+    line-height: 18px;
+    font-weight: 500;
+    color: #d1d4dc;
+    pointer-events: none;
+    background-color: rgba(19, 23, 34, 0.7);
+    padding: 6px;
+    border-radius: 4px;
   }
-  .legend-item { display: flex; gap: 10px; }
+
+  .legend-item {
+    display: flex;
+    gap: 10px;
+  }
 </style>
 
 <div class="container-fluid px-4 mt-2">
-  {% with messages = get_flashed_messages(with_categories=true) %} 
-    {% if messages %} 
-      {% for category, message in messages %}
-      <div class="alert alert-{{ category }} alert-dismissible fade show shadow-sm" role="alert">
-        <strong>Thông báo:</strong> {{ message }}
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-      </div>
-      {% endfor %} 
-    {% endif %} 
+  {% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+  {% for category, message in messages %}
+  <div class="alert alert-{{ category }} alert-dismissible fade show shadow-sm" role="alert">
+    <strong>Thông báo:</strong> {{ message }}
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+  </div>
+  {% endfor %}
+  {% endif %}
   {% endwith %}
 </div>
 
 <div class="container-fluid p-0">
   <div class="row g-0" style="height: calc(100vh - 50px)">
-    
+
     <div class="col-md-9 border-end border-secondary position-relative d-flex flex-column">
-      
-      <div class="chart-header p-2 d-flex align-items-center gap-4 px-4" style="background: #131722; border-bottom: 1px solid #2a2e39; height: 50px;">
+
+      <div class="chart-header p-2 d-flex align-items-center gap-4 px-4"
+        style="background: #131722; border-bottom: 1px solid #2a2e39; height: 50px;">
         <h4 class="m-0 fw-bold text-warning">{{ symbol }}</h4>
 
         <div class="d-flex align-items-end gap-2">
@@ -39,15 +52,16 @@
           <span class="fs-6 text-muted mb-1">VNĐ</span>
         </div>
 
-        {% if history and history|length > 1 %} 
-          {% set change = current - history[-1].close %} 
-          {% set pct = (change / history[-1].close) * 100 %}
-          <div class="{{ 'text-success' if change >= 0 else 'text-danger' }} d-flex align-items-center gap-2 fw-bold">
-            <span class="fs-5">{{ "{:+,.0f}".format(change) }}</span>
-            <span class="badge {{ 'bg-success' if change >= 0 else 'bg-danger' }} bg-opacity-25 text-white border {{ 'border-success' if change >= 0 else 'border-danger' }}">
-              {{ "{:+.2f}%".format(pct) }}
-            </span>
-          </div>
+        {% if history and history|length > 1 %}
+        {% set change = current - history[-1].close %}
+        {% set pct = (change / history[-1].close) * 100 %}
+        <div class="{{ 'text-success' if change >= 0 else 'text-danger' }} d-flex align-items-center gap-2 fw-bold">
+          <span class="fs-5">{{ "{:+,.0f}".format(change) }}</span>
+          <span
+            class="badge {{ 'bg-success' if change >= 0 else 'bg-danger' }} bg-opacity-25 text-white border {{ 'border-success' if change >= 0 else 'border-danger' }}">
+            {{ "{:+.2f}%".format(pct) }}
+          </span>
+        </div>
         {% endif %}
       </div>
 
@@ -66,8 +80,9 @@
             <span style="color: #768f40">Vol: <span id="leg-vol">--</span></span>
           </div>
           <div class="legend-item">
-            <span style="color: #2962ff">MA10: <span id="leg-ma10">--</span></span>
+            <span style="color: #2962ff">ma100: <span id="leg-ma100">--</span></span>
             <span style="color: #f48fb1; margin-left: 8px">MA30: <span id="leg-ma30">--</span></span>
+            <span style="color: #ffffff; margin-left: 8px">MA200: <span id="leg-ma200">--</span></span>
           </div>
         </div>
 
@@ -80,77 +95,95 @@
 
     <div class="col-md-3 bg-dark-panel d-flex flex-column" style="background: #1e222d; border-left: 1px solid #2a2e39;">
       <div class="p-3 flex-grow-1 overflow-auto">
+        <div class="mt-4">
+          <h5 class="text-white mb-3 text-uppercase border-bottom border-secondary pb-2">
+            Phân Tích AI (Gemini Vision)
+          </h5>
+          <button class="btn btn-warning btn-sm mb-3" id="btn-gemini">
+            <i class="bi bi-stars"></i> Phân tích bằng Gemini (nhìn chart)
+          </button>
+
+          <div id="gemini-panel" class="p-3 bg-black bg-opacity-50 rounded" style="display:none; min-height:100px;">
+            <div id="gemini-result" class="text-white small"></div>
+          </div>
+        </div>
         <h5 class="text-white mb-3 text-uppercase border-bottom border-secondary pb-2">Đặt Lệnh</h5>
 
         {% if current_user.is_authenticated %}
-            <form action="{{ url_for('trade.trade') }}" method="post" id="tradeForm">
-              <input type="hidden" name="symbol" value="{{ symbol }}" />
+        <form action="{{ url_for('trade.trade') }}" method="post" id="tradeForm">
+          <input type="hidden" name="symbol" value="{{ symbol }}" />
 
-              <div class="d-flex justify-content-between mb-2 p-2 rounded bg-black bg-opacity-25 border border-secondary">
-                <span class="text-secondary small">Sức mua:</span>
-                <span class="text-warning fw-bold">{{ "{:,.0f}".format(current_user.balance) }} ₫</span>
-              </div>
+          <div class="d-flex justify-content-between mb-2 p-2 rounded bg-black bg-opacity-25 border border-secondary">
+            <span class="text-secondary small">Sức mua:</span>
+            <span class="text-warning fw-bold">{{ "{:,.0f}".format(current_user.balance) }} ₫</span>
+          </div>
 
-              <div class="mb-3">
-                <label class="text-secondary small mb-1">Khối lượng</label>
-                <div class="input-group input-group-sm">
-                  <button type="button" class="btn btn-outline-secondary" onclick="adjustQty(-100)">-</button>
-                  <input type="number" name="quantity" id="qtyInput" class="form-control bg-dark border-secondary text-white text-center fw-bold" placeholder="0" step="100" min="100" required oninput="calcTotal()" />
-                  <button type="button" class="btn btn-outline-secondary" onclick="adjustQty(100)">+</button>
-                </div>
-              </div>
-
-              <div class="mb-3 d-flex justify-content-between gap-1">
-                <button type="button" onclick="setQtyPercent(0.25)" class="btn btn-xs btn-outline-secondary flex-fill" style="font-size: 11px;">25%</button>
-                <button type="button" onclick="setQtyPercent(0.5)" class="btn btn-xs btn-outline-secondary flex-fill" style="font-size: 11px;">50%</button>
-                <button type="button" onclick="setQtyPercent(1)" class="btn btn-xs btn-outline-secondary flex-fill" style="font-size: 11px;">All</button>
-              </div>
-
-              <div class="mb-3 text-end">
-                <span class="text-secondary small me-2">Tổng:</span>
-                <span class="fs-6 fw-bold text-white" id="totalVal">0 ₫</span>
-              </div>
-
-              <div class="d-grid gap-2 mb-3">
-                <button type="submit" name="action" value="buy" class="btn btn-success fw-bold text-uppercase">MUA</button>
-                <button type="submit" name="action" value="sell" class="btn btn-danger fw-bold text-uppercase">BÁN</button>
-              </div>
-            </form>
-        
-        {% else %}
-            <div class="text-center py-5">
-                <i class="bi bi-lock-fill text-secondary" style="font-size: 3rem;"></i>
-                <p class="text-muted mt-3 mb-4 small">Bạn cần đăng nhập để thực hiện giao dịch mua bán cổ phiếu.</p>
-                <div class="d-grid gap-2">
-                    <a href="{{ url_for('auth.login') }}" class="btn btn-warning fw-bold text-dark">
-                        <i class="bi bi-box-arrow-in-right"></i> ĐĂNG NHẬP NGAY
-                    </a>
-                    <a href="{{ url_for('auth.register') }}" class="btn btn-outline-secondary btn-sm">
-                        Đăng ký tài khoản mới
-                    </a>
-                </div>
+          <div class="mb-3">
+            <label class="text-secondary small mb-1">Khối lượng</label>
+            <div class="input-group input-group-sm">
+              <button type="button" class="btn btn-outline-secondary" onclick="adjustQty(-100)">-</button>
+              <input type="number" name="quantity" id="qtyInput"
+                class="form-control bg-dark border-secondary text-white text-center fw-bold" placeholder="0" step="100"
+                min="100" required oninput="calcTotal()" />
+              <button type="button" class="btn btn-outline-secondary" onclick="adjustQty(100)">+</button>
             </div>
+          </div>
+
+          <div class="mb-3 d-flex justify-content-between gap-1">
+            <button type="button" onclick="setQtyPercent(0.25)" class="btn btn-xs btn-outline-secondary flex-fill"
+              style="font-size: 11px;">25%</button>
+            <button type="button" onclick="setQtyPercent(0.5)" class="btn btn-xs btn-outline-secondary flex-fill"
+              style="font-size: 11px;">50%</button>
+            <button type="button" onclick="setQtyPercent(1)" class="btn btn-xs btn-outline-secondary flex-fill"
+              style="font-size: 11px;">All</button>
+          </div>
+
+          <div class="mb-3 text-end">
+            <span class="text-secondary small me-2">Tổng:</span>
+            <span class="fs-6 fw-bold text-white" id="totalVal">0 ₫</span>
+          </div>
+
+          <div class="d-grid gap-2 mb-3">
+            <button type="submit" name="action" value="buy" class="btn btn-success fw-bold text-uppercase">MUA</button>
+            <button type="submit" name="action" value="sell" class="btn btn-danger fw-bold text-uppercase">BÁN</button>
+          </div>
+        </form>
+
+        {% else %}
+        <div class="text-center py-5">
+          <i class="bi bi-lock-fill text-secondary" style="font-size: 3rem;"></i>
+          <p class="text-muted mt-3 mb-4 small">Bạn cần đăng nhập để thực hiện giao dịch mua bán cổ phiếu.</p>
+          <div class="d-grid gap-2">
+            <a href="{{ url_for('auth.login') }}" class="btn btn-warning fw-bold text-dark">
+              <i class="bi bi-box-arrow-in-right"></i> ĐĂNG NHẬP NGAY
+            </a>
+            <a href="{{ url_for('auth.register') }}" class="btn btn-outline-secondary btn-sm">
+              Đăng ký tài khoản mới
+            </a>
+          </div>
+        </div>
         {% endif %}
 
         <hr class="border-secondary my-3">
-        
+
         <div class="d-grid">
-            <button onclick="runAI()" id="btn-ai" class="btn btn-outline-info fw-bold py-2" style="border-style: dashed;">
-                <i class="bi bi-robot"></i> PHÂN TÍCH AI
-            </button>
+          <button onclick="runAI()" id="btn-ai" class="btn btn-outline-info fw-bold py-2" style="border-style: dashed;">
+            <i class="bi bi-robot"></i> PHÂN TÍCH AI
+          </button>
         </div>
 
-        <div id="ai-panel" class="mt-3 p-2 rounded border border-info bg-dark bg-opacity-50" style="display: none; font-size: 0.85rem;">
-            <div class="d-flex justify-content-between align-items-center mb-2 border-bottom border-secondary pb-1">
-                <span class="text-info fw-bold"><i class="bi bi-stars"></i> Kết quả AI</span>
-                <span id="ai-trend-badge" class="badge bg-secondary">---</span>
-            </div>
-            <div class="mb-2">
-                <span class="text-muted small d-block">Lý do khuyến nghị:</span>
-                <p id="ai-reason-text" class="text-white mb-0 mt-1" style="line-height: 1.4; text-align: justify;">
-                    Đang tải...
-                </p>
-            </div>
+        <div id="ai-panel" class="mt-3 p-2 rounded border border-info bg-dark bg-opacity-50"
+          style="display: none; font-size: 0.85rem;">
+          <div class="d-flex justify-content-between align-items-center mb-2 border-bottom border-secondary pb-1">
+            <span class="text-info fw-bold"><i class="bi bi-stars"></i> Kết quả AI</span>
+            <span id="ai-trend-badge" class="badge bg-secondary">---</span>
+          </div>
+          <div class="mb-2">
+            <span class="text-muted small d-block">Lý do khuyến nghị:</span>
+            <p id="ai-reason-text" class="text-white mb-0 mt-1" style="line-height: 1.4; text-align: justify;">
+              Đang tải...
+            </p>
+          </div>
         </div>
 
       </div>
@@ -206,11 +239,12 @@
   const volumeSeries = chart.addHistogramSeries({ color: '#26a69a', priceFormat: { type: 'volume' }, priceScaleId: '' });
   chart.priceScale('').applyOptions({ scaleMargins: { top: 0.75, bottom: 0 } });
 
-  const ma10Series = chart.addLineSeries({ color: '#2962FF', lineWidth: 1, crosshairMarkerVisible: false, lastValueVisible: false, priceLineVisible: false });
+  const ma100Series = chart.addLineSeries({ color: '#2962FF', lineWidth: 2, crosshairMarkerVisible: false, lastValueVisible: false, priceLineVisible: false });
   const ma30Series = chart.addLineSeries({ color: '#F48FB1', lineWidth: 2, crosshairMarkerVisible: false, lastValueVisible: true, priceLineVisible: false });
+  const ma200Series = chart.addLineSeries({ color: '#ffffff', lineWidth: 2, crosshairMarkerVisible: false, lastValueVisible: true, priceLineVisible: false });
 
   // 3. XỬ LÝ DỮ LIỆU
-let rawData = JSON.parse('{{ history | tojson | safe }}');
+  let rawData = JSON.parse('{{ history | tojson | safe }}');
 
   if (rawData && rawData.length > 0) {
     if (loader) loader.style.display = 'none';
@@ -233,29 +267,32 @@ let rawData = JSON.parse('{{ history | tojson | safe }}');
     candles.sort((a, b) => new Date(a.time) - new Date(b.time));
     volumes.sort((a, b) => new Date(a.time) - new Date(b.time));
 
-    const ma10Data = calculateSMA(candles, 10);
+    const ma100Data = calculateSMA(candles, 100);
     const ma30Data = calculateSMA(candles, 30);
+    const ma200Data = calculateSMA(candles, 200);
 
     candlestickSeries.setData(candles);
     volumeSeries.setData(volumes);
-    ma10Series.setData(ma10Data);
+    ma100Series.setData(ma100Data);
     ma30Series.setData(ma30Data);
+    ma200Series.setData(ma200Data);
     chart.timeScale().fitContent();
 
     const legendIds = {
       open: document.getElementById('leg-open'), high: document.getElementById('leg-high'),
       low: document.getElementById('leg-low'), close: document.getElementById('leg-close'),
-      vol: document.getElementById('leg-vol'), ma10: document.getElementById('leg-ma10'),
+      vol: document.getElementById('leg-vol'), ma100: document.getElementById('leg-ma100'),
       ma30: document.getElementById('leg-ma30'),
+      ma200: document.getElementById('leg-ma200'),
     };
 
     chart.subscribeCrosshairMove(param => {
       if (param.time) {
         const candleData = param.seriesData.get(candlestickSeries);
         const volData = param.seriesData.get(volumeSeries);
-        const ma10Val = param.seriesData.get(ma10Series);
+        const ma100Val = param.seriesData.get(ma100Series);
         const ma30Val = param.seriesData.get(ma30Series);
-
+        const ma200Val = param.seriesData.get(ma200Series);
         if (candleData) {
           legendIds.open.innerText = candleData.open.toLocaleString();
           legendIds.high.innerText = candleData.high.toLocaleString();
@@ -264,9 +301,11 @@ let rawData = JSON.parse('{{ history | tojson | safe }}');
           legendIds.close.style.color = (candleData.close >= candleData.open) ? '#089981' : '#f23645';
         }
         if (volData) legendIds.vol.innerText = volData.value.toLocaleString();
-        legendIds.ma10.innerText = ma10Val ? ma10Val.value.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ",") : '--';
+        legendIds.ma100.innerText = ma100Val ? ma100Val.value.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ",") : '--';
         legendIds.ma30.innerText = ma30Val ? ma30Val.value.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ",") : '--';
+        legendIds.ma200.innerText = ma200Val ? ma200Val.value.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ",") : '--';
       }
+
     });
   } else {
     if (loader) loader.innerHTML = '<div class="text-danger">Không có dữ liệu biểu đồ</div>';
@@ -291,7 +330,7 @@ let rawData = JSON.parse('{{ history | tojson | safe }}');
 
   function adjustQty(delta) {
     const qtyInput = document.getElementById('qtyInput');
-    if(!qtyInput) return;
+    if (!qtyInput) return;
     let currentQty = parseInt(qtyInput.value) || 0;
     let newQty = currentQty + delta;
     if (newQty < 0) newQty = 0;
@@ -304,62 +343,139 @@ let rawData = JSON.parse('{{ history | tojson | safe }}');
     const maxQty = Math.floor(userBalance / currentPrice);
     let targetQty = Math.floor(maxQty * percent);
     const qtyInput = document.getElementById('qtyInput');
-    if(qtyInput) {
-        qtyInput.value = targetQty;
-        calcTotal();
+    if (qtyInput) {
+      qtyInput.value = targetQty;
+      calcTotal();
     }
   }
 
   // 5. AI PREDICTION
   const predSeries = chart.addLineSeries({
-      color: '#d63031', lineWidth: 2, lineStyle: 2,
-      title: 'AI Forecast', crosshairMarkerVisible: true,
+    color: '#d63031', lineWidth: 2, lineStyle: 2,
+    title: 'AI Forecast', crosshairMarkerVisible: true,
   });
 
   function runAI() {
-      const btn = document.getElementById('btn-ai');
-      const aiPanel = document.getElementById('ai-panel');
-      const trendBadge = document.getElementById('ai-trend-badge');
-      const reasonText = document.getElementById('ai-reason-text');
-      const symbol = "{{ symbol }}";
+    const btn = document.getElementById('btn-ai');
+    const aiPanel = document.getElementById('ai-panel');
+    const trendBadge = document.getElementById('ai-trend-badge');
+    const reasonText = document.getElementById('ai-reason-text');
+    const symbol = "{{ symbol }}";
 
-      btn.disabled = true;
-      btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Đang xử lý...';
-      aiPanel.style.display = 'block';
-      reasonText.innerHTML = '<span class="text-secondary fst-italic">Đang kết nối tới máy chủ phân tích...</span>';
-      trendBadge.className = 'badge bg-secondary';
-      trendBadge.innerText = 'Analyzing...';
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Đang xử lý...';
+    aiPanel.style.display = 'block';
+    reasonText.innerHTML = '<span class="text-secondary fst-italic">Đang kết nối tới máy chủ phân tích...</span>';
+    trendBadge.className = 'badge bg-secondary';
+    trendBadge.innerText = 'Analyzing...';
 
-      fetch(`/api/predict/${symbol}`)
-          .then(res => res.json())
-          .then(data => {
-              if(data.data && data.data.length > 0) {
-                  predSeries.setData(data.data);
-                  chart.timeScale().fitContent();
+    fetch(`/api/predict/${symbol}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.data && data.data.length > 0) {
+          predSeries.setData(data.data);
+          chart.timeScale().fitContent();
 
-                  trendBadge.innerText = data.trend;
-                  if(data.trend.includes('TĂNG')) {
-                      trendBadge.className = 'badge bg-success shadow';
-                  } else if (data.trend.includes('ĐI NGANG')) {
-                      trendBadge.className = 'badge bg-warning text-dark shadow';
-                  } else {
-                      trendBadge.className = 'badge bg-danger shadow';
-                  }
+          trendBadge.innerText = data.trend;
+          if (data.trend.includes('TĂNG')) {
+            trendBadge.className = 'badge bg-success shadow';
+          } else if (data.trend.includes('ĐI NGANG')) {
+            trendBadge.className = 'badge bg-warning text-dark shadow';
+          } else {
+            trendBadge.className = 'badge bg-danger shadow';
+          }
 
-                  let cleanReason = data.reason.replace(/\|/g, '<br>• ');
-                  reasonText.innerHTML = '• ' + cleanReason;
-              } else {
-                  reasonText.innerHTML = '<span class="text-danger">Không đủ dữ liệu để phân tích mã này.</span>';
-              }
-          })
-          .catch(err => {
-              console.error(err);
-              reasonText.innerHTML = '<span class="text-danger">Lỗi kết nối. Vui lòng thử lại sau.</span>';
-          })
-          .finally(() => {
-              btn.disabled = false;
-              btn.innerHTML = '<i class="bi bi-arrow-repeat"></i> Phân tích lại';
-          });
+          let cleanReason = data.reason.replace(/\|/g, '<br>• ');
+          reasonText.innerHTML = '• ' + cleanReason;
+        } else {
+          reasonText.innerHTML = '<span class="text-danger">Không đủ dữ liệu để phân tích mã này.</span>';
+        }
+      })
+      .catch(err => {
+        console.error(err);
+        reasonText.innerHTML = '<span class="text-danger">Lỗi kết nối. Vui lòng thử lại sau.</span>';
+      })
+      .finally(() => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-arrow-repeat"></i> Phân tích lại';
+      });
   }
+</script>
+
+<script>
+  function runGemini() {
+    const btn = document.getElementById('btn-gemini');
+    const panel = document.getElementById('gemini-panel');
+    const result = document.getElementById('gemini-result');
+    const symbol = "{{ symbol }}";
+
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Đang nhìn chart...';
+    panel.style.display = 'block';
+    result.innerHTML = '<i>Gemini đang phân tích biểu đồ...</i>';
+
+    fetch(`/api/gemini/${symbol}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.analysis) {
+          result.innerHTML = data.analysis.replace(/\n/g, '<br>');
+        } else {
+          result.innerHTML = '<span class="text-danger">Không nhận được kết quả.</span>';
+        }
+      })
+      .catch(err => {
+        result.innerHTML = '<span class="text-danger">Đang phân tích biểu đồ...</span>';
+      })
+      .finally(() => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-stars"></i> Phân tích lại bằng Gemini';
+      });
+  }
+
+  // Gắn sự kiện
+  document.getElementById('btn-gemini').addEventListener('click', runGemini);
+</script>
+<script>
+  async function captureChartAndSendToGemini() {
+    const btn = document.getElementById('btn-gemini');
+    const result = document.getElementById('gemini-result');
+    const symbol = "{{ symbol }}";
+
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Đang chụp & phân tích...';
+    result.innerHTML = '<i>Gemini đang đọc biểu đồ...</i>';
+
+    try {
+      // 1. Chụp canvas của chart
+      const canvas = document.querySelector('#chart-container canvas');
+      if (!canvas) throw new Error("Không tìm thấy canvas");
+
+      const imageDataUrl = canvas.toDataURL('image/png');
+
+      // 2. Gửi ảnh tới backend
+      const response = await fetch(`/api/gemini/${symbol}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image: imageDataUrl })
+      });
+
+      const data = await response.json();
+
+      if (data.analysis) {
+        result.innerHTML = data.analysis.replace(/\n/g, '<br>');
+      } else {
+        result.innerHTML = '<span class="text-danger">' + (data.error || 'Không có kết quả') + '</span>';
+      }
+    } catch (err) {
+      console.error(err);
+      result.innerHTML = '<span class="text-danger">Lỗi: ' + err.message + '</span>';
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="bi bi-stars"></i> Phân tích lại bằng Gemini';
+    }
+  }
+
+  // Thay đổi sự kiện click
+  document.getElementById('btn-gemini').addEventListener('click', captureChartAndSendToGemini);
 </script>
 {% endblock %}
