@@ -68,12 +68,21 @@ def stock_detail(symbol):
             cursor.close()
         if conn and conn.is_connected():
             conn.close()
-
+    order_book = []
+    if current_user.is_authenticated:
+        conn = get_db()
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("SELECT * FROM orders WHERE user_id = %s AND symbol = %s ORDER BY created_at DESC LIMIT 20", (current_user.id, symbol))
+        order_book = cursor.fetchall()
+        cursor.close()
+        conn.close()
+    # ---------------------
     return render_template(
         "stock_detail.html", 
         symbol=symbol, 
         current=current_price, 
-        history=history
+        history=history,
+        order_book=order_book
     )
 # DANH SÁCH THỊ TRƯỜNG
 @market_bp.route("/market")
