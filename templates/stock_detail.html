@@ -112,19 +112,10 @@
                     <span class="text-warning fw-bold">{{ "{:,.0f}".format(current_user.balance) }} ₫</span>
                   </div>
 
-                  <div class="row g-2 mb-3">
-                      <div class="col-4">
-                          <label class="text-secondary small mb-1">Loại</label>
-                          <select name="order_type" id="orderType" class="form-select form-select-sm bg-dark text-white border-secondary" onchange="togglePriceInput()">
-                              <option value="MP">MP</option>
-                              <option value="LO">LO</option>
-                          </select>
-                      </div>
-                      <div class="col-8">
-                          <label class="text-secondary small mb-1">Giá đặt (VNĐ)</label>
-                          <input type="number" name="price_limit" id="priceInput" class="form-control form-control-sm bg-dark text-white border-secondary fw-bold" 
-                                 placeholder="Thị trường" disabled value="{{ current }}" step="100" oninput="calcTotal()">
-                      </div>
+                  <div class="mb-3">
+                      <label class="text-secondary small mb-1">Giá đặt (VNĐ)</label>
+                      <input type="number" name="price_limit" id="priceInput" class="form-control bg-dark text-white border-secondary fw-bold" 
+                             placeholder="Nhập giá muốn đặt" value="{{ current }}" step="100" required oninput="calcTotal()">
                   </div>
 
                   <div class="mb-3">
@@ -199,11 +190,7 @@
                             <span class="text-muted" style="font-size: 10px">{{ order.created_at.strftime('%H:%M') }}</span>
                         </td>
                         <td class="text-end text-white">
-                            {% if order.order_type == 'MP' %}
-                                <span class="badge bg-secondary" style="font-size: 9px">MP</span>
-                            {% else %}
-                                {{ "{:,.0f}".format(order.price) }}
-                            {% endif %}
+                            {{ "{:,.0f}".format(order.price) }}
                         </td>
                         <td class="text-end text-white">{{ "{:,}".format(order.quantity) }}</td>
                         <td class="text-end pe-3">
@@ -301,7 +288,6 @@
     ma30Series.setData(calculateSMA(candles, 30));
     chart.timeScale().fitContent();
 
-    // Legend Logic
     const legendIds = { open: document.getElementById('leg-open'), high: document.getElementById('leg-high'), low: document.getElementById('leg-low'), close: document.getElementById('leg-close'), vol: document.getElementById('leg-vol') };
     chart.subscribeCrosshairMove(param => {
       if (param.time) {
@@ -342,23 +328,17 @@
       calcTotal();
   }
 
-  function togglePriceInput() {
-      const type = document.getElementById('orderType').value;
-      const pInp = document.getElementById('priceInput');
-      if (type === 'MP') {
-          pInp.disabled = true; pInp.value = currentPrice; pInp.placeholder = "Thị trường";
-      } else { pInp.disabled = false; }
-      calcTotal();
-  }
-
+  // Hàm tính tổng giá trị
   function calcTotal() {
       const qty = parseInt(document.getElementById('qtyInput').value) || 0;
       let price = parseFloat(document.getElementById('priceInput').value);
-      if (document.getElementById('orderType').value === 'MP' || !price) price = currentPrice;
+      
+      if (!price || price < 0) price = 0;
 
       const total = price * qty;
       const tSpan = document.getElementById('totalVal');
       tSpan.innerText = total.toLocaleString('en-US') + " ₫";
+      
       if (currentSide === 'BUY' && total > userBalance) tSpan.style.color = '#ff4d4d';
       else tSpan.style.color = 'white';
   }
@@ -370,8 +350,12 @@
   }
 
   function setQtyPercent(pct) {
-      if(currentPrice > 0 && userBalance > 0) {
-          let max = Math.floor(userBalance / currentPrice);
+      // Để tính % chính xác cần biết giá người dùng định đặt.
+      // Ở đây tạm lấy giá trong ô input, nếu chưa nhập thì lấy giá thị trường để ước lượng
+      let p = parseFloat(document.getElementById('priceInput').value) || currentPrice;
+      
+      if(p > 0 && userBalance > 0) {
+          let max = Math.floor(userBalance / p);
           document.getElementById('qtyInput').value = Math.floor(max * pct);
           calcTotal();
       }
