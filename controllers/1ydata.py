@@ -2,12 +2,11 @@ import requests
 import time
 from datetime import datetime
 import mysql.connector
-import re  # [NEW] Thêm thư viện xử lý chuỗi regex
+import re  
 
-# --- CẤU HÌNH DATABASE ---
 DB_CONFIG = {
-    'user': 'stock_admin',       
-    'password': 'password123',       
+    'user': 'root',       
+    'password': '123456',       
     'host': 'localhost',
     'database': 'python', 
     'raise_on_warnings': True,
@@ -25,7 +24,6 @@ def convert_date_format(date_str):
         dt = datetime.strptime(date_str, "%d/%m/%Y")
         return dt.strftime("%Y-%m-%d")
     except ValueError as ve:
-        # print(f"   Lỗi parse ngày: {date_str} - {ve}")
         return None
 
 def save_to_db(symbol, data_list):
@@ -38,8 +36,6 @@ def save_to_db(symbol, data_list):
     try:
         conn = mysql.connector.connect(**DB_CONFIG)
         cursor = conn.cursor(buffered=True)
-
-        # [NEW] Cập nhật SQL: Thêm cột percent_change
         sql = """
             INSERT INTO stock_history (symbol, date, open, high, low, close, volume, adjusted_close, price_change, percent_change)
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s) AS new_data
@@ -67,8 +63,8 @@ def save_to_db(symbol, data_list):
                     row['close'], 
                     row['volume'],
                     row['adjusted_close'],
-                    row['change_raw'],      # Chuỗi gốc: "3.32(0.20 %)"
-                    row['percent_change']   # Số thực: 0.20 hoặc -0.20
+                    row['change_raw'],     
+                    row['percent_change']  
                 )
                 val_list.append(val)
 
@@ -88,7 +84,7 @@ def save_to_db(symbol, data_list):
         if cursor: cursor.close()
         if conn and conn.is_connected(): conn.close()
 
-def get_price_history(symbol, days=365):
+def get_price_history(symbol, days=1000):
     url = "https://s.cafef.vn/Ajax/PageNew/DataHistory/PriceHistory.ashx"
     params = {"Symbol": symbol, "PageIndex": 1, "PageSize": days}
     
@@ -105,12 +101,10 @@ def get_price_history(symbol, days=365):
             raw_data = data["Data"]["Data"]
             result = []
             
-            # [NEW] Compile regex pattern một lần để tối ưu tốc độ
-            # Pattern này tìm số (có thể âm/dương) nằm trong dấu ngoặc đơn và trước dấu %
+
             pattern_percent = re.compile(r"\(([-+]?[0-9]*\.?[0-9]+)\s*%\)")
 
             for row in raw_data:
-                # --- Xử lý Volume ---
                 vol = 0
                 keys = ["KhoiLuongKhopLenh"]
                 for k in keys:
@@ -122,7 +116,6 @@ def get_price_history(symbol, days=365):
                                 break
                         except: pass
                 
-                # --- XỬ LÝ GIÁ ---
                 def parse_cafef_price(raw_val):
                     if raw_val is None: return 0.0
                     try:
@@ -138,17 +131,14 @@ def get_price_history(symbol, days=365):
                 c = parse_cafef_price(row.get("GiaDongCua")) * 1000
                 adj = parse_cafef_price(row.get("GiaDieuChinh")) * 1000
                 
-                # [NEW] Xử lý ThayDoi để lấy %
                 change_raw = row.get("ThayDoi", "")
                 if change_raw is None: change_raw = ""
                 
                 pct_change = 0.0
                 if change_raw:
-                    # Tìm kiếm pattern trong chuỗi: "3.32(0.20 %)" -> Lấy 0.20
                     match = pattern_percent.search(str(change_raw))
                     if match:
                         try:
-                            # match.group(1) sẽ lấy phần số trong ngoặc
                             pct_change = float(match.group(1))
                         except:
                             pct_change = 0.0
@@ -161,8 +151,8 @@ def get_price_history(symbol, days=365):
                     "close":"{:.2f}".format(c),
                     "volume": vol,
                     "adjusted_close": "{:.2f}".format(adj),
-                    "change_raw": str(change_raw),    # Lưu chuỗi gốc
-                    "percent_change": pct_change      # [NEW] Lưu số phần trăm (float)
+                    "change_raw": str(change_raw),   
+                    "percent_change": pct_change      
                 })
             return result
     except Exception as e:
@@ -177,10 +167,8 @@ def scan_all_symbols(symbol_list):
             print(f"--------------------------------")
             print(f"Đang xử lý: {symbol}...")
             
-            # 1. Lấy dữ liệu
-            data = get_price_history(symbol, days=365)
+            data = get_price_history(symbol, days=1000)
             
-            # 2. Lưu vào DB
             if data:
                 print(f"   -> Tìm thấy {len(data)} bản ghi. Đang lưu...")
                 save_to_db(symbol, data)
@@ -188,11 +176,9 @@ def scan_all_symbols(symbol_list):
                 print(f"   -> [CẢNH BÁO] Không có dữ liệu cho {symbol}")
                 
         except Exception as e:
-            # [QUAN TRỌNG] Bắt mọi lỗi để không làm dừng chương trình
             print(f"   -> [LỖI NGHIÊM TRỌNG] Mã {symbol} bị lỗi: {e}")
             print("   -> Bỏ qua, chuyển sang mã tiếp theo...")
             
-        # Nghỉ 1 chút để tránh bị chặn IP
         time.sleep(1)
 
     print("\n=== HOÀN TẤT QUÁ TRÌNH CẬP NHẬT ===")
