@@ -19,7 +19,7 @@
         <div class="d-flex align-items-center gap-4">
           {% if current_user.is_authenticated %}
             <div class="d-none d-md-block text-end lh-1">
-                <div class="text-muted small" style="font-size: 11px;">Tổng tài sản</div>
+                <div class="text-muted small" style="font-size: 11px;">Tổng tiền</div>
                 <div class="fw-num text-success fw-bold">{{ "{:,.0f}".format(current_user.balance) }} ₫</div>
             </div>
             
