@@ -1,16 +1,15 @@
-/* --- GLOBAL CONFIG --- */
 :root {
-  --bg-main: #131722; /* Màu nền chính (TradingView Dark) */
-  --bg-panel: #1e222d; /* Màu nền các thẻ/bảng */
-  --bg-hover: #2a2e39; /* Màu khi di chuột */
-  --text-main: #d1d4dc; /* Màu chữ chính */
-  --text-muted: #787b86; /* Màu chữ mờ */
-  --color-up: #089981; /* Xanh tăng giá (Chuẩn quốc tế) */
-  --color-down: #f23645; /* Đỏ giảm giá */
-  --color-ref: #ffc107; /* Vàng tham chiếu */
-  --color-ceil: #d0021b; /* Tím trần (Ở đây để tím hoặc hồng đậm tùy sàn) */
-  --color-floor: #00c5c5; /* Xanh lơ sàn */
-  --font-num: "JetBrains Mono", monospace; /* Font số chuyên dụng */
+  --bg-main: #131722;
+  --bg-panel: #1e222d;
+  --bg-hover: #2a2e39;
+  --text-main: #d1d4dc;
+  --text-muted: #787b86;
+  --color-up: #089981;
+  --color-down: #f23645;
+  --color-ref: #ffc107;
+  --color-ceil: #d0021b;
+  --color-floor: #00c5c5;
+  --font-num: "JetBrains Mono", monospace;
 }
 
 body {
@@ -21,7 +20,6 @@ body {
   font-size: 14px;
 }
 
-/* --- TYPOGRAPHY --- */
 .fw-num {
   font-family: var(--font-num);
 }
@@ -62,7 +60,6 @@ body {
   color: var(--color-floor) !important;
 }
 
-/* --- NAVBAR --- */
 .navbar {
   background-color: var(--bg-panel) !important;
   border-bottom: 1px solid #2a2e39;
@@ -77,7 +74,6 @@ body {
   -webkit-text-fill-color: transparent;
 }
 
-/* --- CARDS & PANELS --- */
 .card {
   background-color: var(--bg-panel);
   border: 1px solid #2a2e39;
@@ -89,7 +85,6 @@ body {
   font-weight: 600;
 }
 
-/* --- TABLES (Electronic Board Style) --- */
 .table-dark {
   background-color: var(--bg-panel);
   color: var(--text-main);
@@ -121,14 +116,12 @@ body {
   background-color: var(--bg-hover);
   cursor: pointer;
 }
-/* Cột Mã CK to và đậm hơn */
 .table-vnd td.col-sym {
   text-align: left;
   font-weight: bold;
   font-family: sans-serif;
 }
 
-/* --- FORM ELEMENTS --- */
 .form-control {
   background-color: #131722;
   border: 1px solid #2a2e39;
@@ -141,7 +134,6 @@ body {
   box-shadow: none;
 }
 
-/* --- AUTH PAGE (Login/Register) --- */
 .auth-bg {
   background: radial-gradient(circle at top right, #1f2533 0%, #000 100%);
   min-height: 100vh;
@@ -154,7 +146,6 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-/* --- INDEX BAR (Thanh chỉ số trên cùng) --- */
 .index-bar {
   display: flex;
   gap: 15px;
@@ -182,7 +173,6 @@ body {
   font-weight: bold;
 }
 
-/* Custom Scrollbar */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
@@ -198,7 +188,6 @@ body {
   background: #666;
 }
 
-/* Màu toàn hàng theo % thay đổi */
 .row-up {
   background-color: rgba(8, 153, 129, 0.15) !important; /* Xanh nhạt */
 }
@@ -232,18 +221,16 @@ body {
   font-weight: bold;
 }
 
-/* Giữ nguyên màu đặc trưng cho Trần, Sàn, TC */
 .text-ceil {
   color: var(--color-ceil) !important;
-} /* Tím trần */
+}
 .text-floor {
   color: var(--color-floor) !important;
-} /* Xanh lơ sàn */
+}
 .text-ref {
   color: var(--color-ref) !important;
-} /* Vàng tham chiếu */
+}
 
-/* Màu chữ +/- */
 .text-green {
   color: var(--color-up) !important;
 }
@@ -257,7 +244,6 @@ body {
   color: var(--text-muted) !important;
 }
 
-/* Hover vẫn đẹp */
 .table-vnd tr:hover td {
   background-color: var(--bg-hover) !important;
   transition: background-color 0.2s ease;
