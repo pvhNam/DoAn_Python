@@ -1,96 +1,168 @@
-{% extends "base.html" %} 
-{% block title %}Bảng Giá Trực Tuyến{% endblock %} 
-{% block content %}
+{% extends "base.html" %} {% block title %}Bảng Giá Trực Tuyến{% endblock %} {%
+block content %}
 
 <div class="index-bar">
-    <div class="index-item">
-        <span class="index-name">VN-INDEX</span>
-        <span class="index-val text-up">1,254.45 <small>▲ 5.20</small></span>
-    </div>
-    <div class="index-item">
-        <span class="index-name">VN30</span>
-        <span class="index-val text-down">1,280.10 <small>▼ 2.50</small></span>
-    </div>
-    <div class="index-item">
-        <span class="index-name">HNX-INDEX</span>
-        <span class="index-val text-ref">240.00 <small>■ 0.00</small></span>
-    </div>
-    <div class="index-item">
-        <span class="index-name">UPCOM</span>
-        <span class="index-val text-up">98.2 <small>▲ 0.5</small></span>
-    </div>
+  <div class="index-item">
+    <span class="index-name">VN-INDEX</span>
+    <span class="index-val text-up">1,254.45 <small>▲ 5.20</small></span>
+  </div>
+  <div class="index-item">
+    <span class="index-name">VN30</span>
+    <span class="index-val text-down">1,280.10 <small>▼ 2.50</small></span>
+  </div>
+  <div class="index-item">
+    <span class="index-name">HNX-INDEX</span>
+    <span class="index-val text-ref">240.00 <small>■ 0.00</small></span>
+  </div>
+  <div class="index-item">
+    <span class="index-name">UPCOM</span>
+    <span class="index-val text-up">98.2 <small>▲ 0.5</small></span>
+  </div>
 </div>
 
-<div class="p-2" style="background: #000; min-height: 100vh;">
-    <div class="table-responsive">
-        <table class="table-vnd">
-            <thead>
-                <tr>
-                    <th rowspan="2" class="align-middle">Mã CK</th>
-                    <th rowspan="2" class="align-middle">Trần</th>
-                    <th rowspan="2" class="align-middle">Sàn</th>
-                    <th rowspan="2" class="align-middle">TC</th>
-                    
-                    <th colspan="6" class="border-bottom-0" style="border-left: 2px solid #444">Bên Mua</th>
-                    <th colspan="3" class="border-bottom-0 bg-dark-subtle text-white" style="border-left: 2px solid #444">Khớp Lệnh</th>
-                    <th colspan="6" class="border-bottom-0" style="border-left: 2px solid #444">Bên Bán</th>
-                    
-                    <th rowspan="2" class="align-middle" style="border-left: 2px solid #444">Tổng KL</th>
-                </tr>
-                <tr class="small text-muted">
-                    <th style="border-left: 2px solid #444">Giá 3</th> <th>KL 3</th>
-                    <th>Giá 2</th> <th>KL 2</th>
-                    <th>Giá 1</th> <th>KL 1</th>
-                    
-                    <th style="border-left: 2px solid #444">Giá</th> <th>+/-</th> <th>KL</th>
-                    
-                    <th style="border-left: 2px solid #444">Giá 1</th> <th>KL 1</th>
-                    <th>Giá 2</th> <th>KL 2</th>
-                    <th>Giá 3</th> <th>KL 3</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for s in stocks %}
-                    {% set color_class = 'text-ref' %}
-                    {% if s.price > s.ref %}{% set color_class = 'text-up' %}
-                    {% elif s.price < s.ref %}{% set color_class = 'text-down' %}
-                    {% elif s.price == s.ceil %}{% set color_class = 'text-purple' %} {# Bạn có thể thêm màu tím #}
-                    {% elif s.price == s.floor %}{% set color_class = 'text-cyan' %}
-                    {% endif %}
-                    
-                    <tr 
-    style="cursor: pointer;"
-    data-href="{{ url_for('market.stock_detail', symbol=s.symbol) }}"
-    onclick="window.location.href=this.dataset.href"
->
-                        <td class="col-sym {{ color_class }}">{{ s.symbol }}</td>
-                        <td class="text-purple">{{ "{:,.2f}".format(s.ceil/1000) }}</td>
-                        <td class="text-cyan">{{ "{:,.2f}".format(s.floor/1000) }}</td>
-                        <td class="text-ref">{{ "{:,.2f}".format(s.ref/1000) }}</td>
+<div class="p-2" style="background: #000; min-height: 100vh">
+  <div class="table-responsive">
+    <table class="table-vnd">
+      <thead>
+        <tr>
+          <th rowspan="2" class="align-middle">Mã CK</th>
+          <th rowspan="2" class="align-middle">Trần</th>
+          <th rowspan="2" class="align-middle">Sàn</th>
+          <th rowspan="2" class="align-middle">TC</th>
 
-                        <td style="border-left: 2px solid #333">{{ "{:,.2f}".format((s.price - 100)/1000) }}</td>
-                        <td>{{ "{:,}".format(s.vol_fake * 2) }}</td>
-                        <td>{{ "{:,.2f}".format((s.price - 50)/1000) }}</td>
-                        <td>{{ "{:,}".format(s.vol_fake * 5) }}</td>
-                        <td class="{{ color_class }}">{{ "{:,.2f}".format((s.price - 10)/1000) }}</td>
-                        <td class="{{ color_class }}">{{ "{:,}".format(s.vol_fake * 10) }}</td>
+          <th
+            colspan="6"
+            class="border-bottom-0"
+            style="border-left: 2px solid #444"
+          >
+            Bên Mua
+          </th>
+          <th
+            colspan="3"
+            class="border-bottom-0 bg-dark-subtle text-white"
+            style="border-left: 2px solid #444"
+          >
+            Khớp Lệnh
+          </th>
+          <th
+            colspan="6"
+            class="border-bottom-0"
+            style="border-left: 2px solid #444"
+          >
+            Bên Bán
+          </th>
 
-                        <td class="{{ color_class }} fw-bold" style="background: #232730; border-left: 2px solid #444">{{ "{:,.2f}".format(s.price/1000) }}</td>
-                        <td class="{{ color_class }}" style="background: #232730">{{ "{:,.2f}".format((s.price - s.ref)/1000) }}</td>
-                        <td class="{{ color_class }}" style="background: #232730">{{ "{:,}".format(s.vol_fake * 20) }}</td>
+          <th
+            rowspan="2"
+            class="align-middle"
+            style="border-left: 2px solid #444"
+          >
+            Tổng KL
+          </th>
+        </tr>
+        <tr class="small text-muted">
+          <th style="border-left: 2px solid #444">Giá 3</th>
+          <th>KL 3</th>
+          <th>Giá 2</th>
+          <th>KL 2</th>
+          <th>Giá 1</th>
+          <th>KL 1</th>
+          <th style="border-left: 2px solid #444">Giá</th>
+          <th>+/-</th>
+          <th>KL</th>
+          <th style="border-left: 2px solid #444">Giá 1</th>
+          <th>KL 1</th>
+          <th>Giá 2</th>
+          <th>KL 2</th>
+          <th>Giá 3</th>
+          <th>KL 3</th>
+        </tr>
+      </thead>
 
-                        <td class="{{ color_class }}" style="border-left: 2px solid #444">{{ "{:,.2f}".format((s.price + 10)/1000) }}</td>
-                        <td class="{{ color_class }}">{{ "{:,}".format(s.vol_fake * 8) }}</td>
-                        <td>{{ "{:,.2f}".format((s.price + 50)/1000) }}</td>
-                        <td>{{ "{:,}".format(s.vol_fake * 4) }}</td>
-                        <td>{{ "{:,.2f}".format((s.price + 100)/1000) }}</td>
-                        <td>{{ "{:,}".format(s.vol_fake * 2) }}</td>
+      <tbody>
+        {% for s in stocks %}
+        <tr
+          class="{% if s.percent_change is defined and s.percent_change is not none %} {% if s.percent_change > 0 %}row-up {% elif s.percent_change < 0 %}row-down {% else %}row-ref{% endif %} {% else %} row-ref {% endif %}"
+          style="cursor: pointer"
+          data-href="{{ url_for('market.stock_detail', symbol=s.symbol) }}"
+          onclick="window.location.href=this.dataset.href"
+        >
+          <!-- Mã CK -->
+          <td class="col-sym fw-bold">{{ s.symbol }}</td>
 
-                        <td class="text-white" style="border-left: 2px solid #444">{{ "{:,}".format(s.total_vol) }}</td>
-                    </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
+          <!-- Trần -->
+          <td class="text-ceil">{{ "{:,.2f}".format(s.ceil/1000) }}</td>
+
+          <!-- Sàn -->
+          <td class="text-floor">{{ "{:,.2f}".format(s.floor/1000) }}</td>
+
+          <!-- Tham chiếu -->
+          <td class="text-ref">{{ "{:,.2f}".format(s.ref/1000) }}</td>
+
+          <!-- Bên mua -->
+          <td style="border-left: 2px solid #333">
+            {{ "{:,.2f}".format((s.price - 100)/1000) }}
+          </td>
+          <td>{{ "{:,}".format(s.vol_fake * 2) }}</td>
+          <td>{{ "{:,.2f}".format((s.price - 50)/1000) }}</td>
+          <td>{{ "{:,}".format(s.vol_fake * 5) }}</td>
+          <td>{{ "{:,.2f}".format((s.price - 10)/1000) }}</td>
+          <td>{{ "{:,}".format(s.vol_fake * 10) }}</td>
+
+          <!-- Giá khớp -->
+          <td
+            class="fw-bold"
+            style="
+              background: #232730;
+              border-left: 2px solid #444;
+              font-size: 1.1em;
+            "
+          >
+            {{ "{:,.2f}".format(s.price/1000) }}
+          </td>
+
+          <!-- +/- % -->
+          <td
+            class="fw-bold"
+            style="background: #232730; vertical-align: middle"
+          >
+            {% if s.percent_change is defined and s.percent_change is not none
+            %} {% if s.percent_change > 0 %}
+            <span class="text-green"
+              >+{{ "%.2f"|format(s.percent_change) }}%</span
+            >
+            {% elif s.percent_change < 0 %}
+            <span class="text-red">{{ "%.2f"|format(s.percent_change) }}%</span>
+            {% else %}
+            <span class="text-yellow">0.00%</span>
+            {% endif %} {% else %}
+            <span class="text-gray">-</span>
+            {% endif %}
+          </td>
+
+          <!-- KL khớp -->
+          <td style="background: #232730">
+            {{ "{:,}".format(s.vol_fake * 20) }}
+          </td>
+
+          <!-- Bên bán -->
+          <td style="border-left: 2px solid #444">
+            {{ "{:,.2f}".format((s.price + 10)/1000) }}
+          </td>
+          <td>{{ "{:,}".format(s.vol_fake * 8) }}</td>
+          <td>{{ "{:,.2f}".format((s.price + 50)/1000) }}</td>
+          <td>{{ "{:,}".format(s.vol_fake * 4) }}</td>
+          <td>{{ "{:,.2f}".format((s.price + 100)/1000) }}</td>
+          <td>{{ "{:,}".format(s.vol_fake * 2) }}</td>
+
+          <!-- Tổng KL -->
+          <td class="text-white" style="border-left: 2px solid #444">
+            {{ "{:,}".format(s.total_vol) }}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
 </div>
 {% endblock %}
