@@ -83,6 +83,7 @@
             <span style="color: #2962ff">ma100: <span id="leg-ma100">--</span></span>
             <span style="color: #f48fb1; margin-left: 8px">MA30: <span id="leg-ma30">--</span></span>
             <span style="color: #ffffff; margin-left: 8px">MA200: <span id="leg-ma200">--</span></span>
+
           </div>
         </div>
 
@@ -115,7 +116,8 @@
 
           <div class="d-flex justify-content-between mb-2 p-2 rounded bg-black bg-opacity-25 border border-secondary">
             <span class="text-secondary small">Sức mua:</span>
-            <span class="text-warning fw-bold">{{ "{:,.0f}".format(current_user.balance) }} ₫</span>
+            <span class="text-warning fw-bold">{{ "{:,.0f}".format(current_user.balance | default(0) | float) }}
+              ₫</span>
           </div>
 
           <div class="mb-3">
@@ -316,7 +318,7 @@
   // 4. LOGIC TÍNH TIỀN
   const currentPrice = Number("{{ current }}");
   // Xử lý an toàn cho biến userBalance khi chưa đăng nhập
-  const userBalance = Number("{% if current_user.is_authenticated %}{{ current_user.balance }}{% else %}0{% endif %}");
+  const userBalance = Number("{% if current_user.is_authenticated %}{{ current_user.balance | default(0) }}{% else %}0{% endif %}");
 
   function calcTotal() {
     const qtyInput = document.getElementById('qtyInput');

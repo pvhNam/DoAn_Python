@@ -26,7 +26,7 @@ Hãy xem kỹ biểu đồ nến Nhật của cổ phiếu {symbol.upper()} tron
 • Xu hướng hiện tại: Tăng / Giảm / Đi ngang (giải thích ngắn)
 • Mức hỗ trợ và kháng cự quan trọng nhất
 • Mô hình giá đang hình thành (nếu có): vai đầu vai, cờ, tam giác, đáy đôi, v.v.
-• Tín hiệu từ chỉ báo kỹ thuật hiển thị trên chart (MA, RSI, MACD, Volume...)
+• Tín hiệu từ chỉ báo kỹ thuật hiển thị trên chart (MA, Volume...)
 • Khuyến nghị: Mua / Bán / Quan sát (kèm lý do ngắn gọn)
 
 Trả về dưới dạng danh sách bullet points, không thêm lời chào hay kết thúc thừa.

@@ -78,13 +78,15 @@ def stock_detail(symbol):
     finally:
         if cursor:
             cursor.close()
-        if conn and conn.is_connected():
-            conn.close()
+        # QUAN TRỌNG: Không đóng connection ở đây vì render_template cần dùng lại
+        # Flask sẽ tự động quản lý đóng connection khi request kết thúc
+        # if conn and conn.is_connected():
+        #    conn.close()
 
     return render_template(
         "stock_detail.html", 
         symbol=symbol, 
-        current=current_price,   # Giá hiện tại vẫn là giá thực (chưa điều chỉnh) - phù hợp với giao dịch thực tế
+        current=current_price,   # Giá hiện tại vẫn là giá thực (chưa điều chỉnh)
         history=history
     )
 
@@ -132,6 +134,7 @@ def api_predict(symbol):
         })
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
 @market_bp.route("/api/gemini/<symbol>", methods=["POST"])
 def api_gemini(symbol):
     try:
