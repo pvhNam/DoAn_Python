@@ -41,7 +41,7 @@ def save_to_db(symbol, data_list):
 
         # [NEW] Cập nhật SQL: Thêm cột percent_change
         sql = """
-            INSERT INTO stock_history (symbol, date, open, high, low, close, volume, adjusted_close, price_change, percent_change)
+            INSERT INTO stock_history_1d (symbol, date, open, high, low, close, volume, adjusted_close, price_change, percent_change)
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s) AS new_data
             ON DUPLICATE KEY UPDATE
             open           = new_data.open,
@@ -88,7 +88,7 @@ def save_to_db(symbol, data_list):
         if cursor: cursor.close()
         if conn and conn.is_connected(): conn.close()
 
-def get_price_history(symbol, days=365):
+def get_price_history(symbol, days=1):
     url = "https://s.cafef.vn/Ajax/PageNew/DataHistory/PriceHistory.ashx"
     params = {"Symbol": symbol, "PageIndex": 1, "PageSize": days}
     
@@ -178,7 +178,7 @@ def scan_all_symbols(symbol_list):
             print(f"Đang xử lý: {symbol}...")
             
             # 1. Lấy dữ liệu
-            data = get_price_history(symbol, days=365)
+            data = get_price_history(symbol, days=1)
             
             # 2. Lưu vào DB
             if data:
