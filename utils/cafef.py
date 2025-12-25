@@ -12,7 +12,7 @@ def get_price_history(symbol, days=365):
     params = {"Symbol": symbol, "PageIndex": 1, "PageSize": days}
     
     try:
-        r = requests.get(url, params=params, headers=HEADERS, timeout=10)
+        r = requests.get(url, params=params, headers=HEADERS, timeout=30)
         data = r.json()
         
         if "Data" in data and "Data" in data["Data"]:

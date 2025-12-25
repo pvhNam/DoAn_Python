@@ -7,7 +7,7 @@ from decimal import Decimal
 
 trade_bp = Blueprint("trade", __name__)
 
-#  NẠP TIỀN 
+# NẠP TIỀN
 @trade_bp.route('/deposit', methods=['GET', 'POST'])
 @login_required
 def deposit():
@@ -28,209 +28,322 @@ def deposit():
             flash("Số tiền không hợp lệ!", "danger")
     return render_template('deposit.html')
 
-
-# TÍNH NĂNG MUA / BÁN  
+# XỬ LÝ ĐẶT LỆNH 
 @trade_bp.route("/trade", methods=["POST"])
 @login_required
 def trade():
+    # Lấy dữ liệu từ Form
     symbol = request.form.get("symbol")
-    action = request.form.get("action")
+    side = request.form.get("side")          
+    order_type = request.form.get("order_type") # Lấy loại lệnh: 'LO' hoặc 'MP'
     
-    # Validate input (số lượng)
+    qty = 0
+    price_input = 0
+
     try:
         qty = int(request.form.get("quantity"))
+        
+        # Nếu là LO thì bắt buộc phải có giá
+        if order_type == 'LO':
+            price_input = float(request.form.get("price_limit"))
+        
         if qty <= 0: raise ValueError
+        if order_type == 'LO' and price_input <= 0: raise ValueError
+            
     except:
-        flash("Khối lượng không hợp lệ", "danger")
+        flash("Dữ liệu nhập vào không hợp lệ", "danger")
         return redirect(url_for("market.stock_detail", symbol=symbol))
 
-    #  Lấy giá thị trường
-    price_float = get_current_price(symbol)
-    if price_float == 0: 
-        flash("Lỗi lấy giá thị trường!", "danger")
+    # Lấy giá thị trường hiện tại (Dùng cho MP)
+    market_price = get_current_price(symbol)
+    if market_price == 0:
+        flash("Lỗi kết nối thị trường!", "danger")
         return redirect(url_for("market.stock_detail", symbol=symbol))
-        
-    total_val = float(price_float * qty)  
-    user_balance = float(current_user.balance) 
-    
-    # Kết nối DB
+
+    # Giá đặt lệnh
+    if order_type == 'LO':
+        my_price = price_input
+    else:
+        # Nếu là MP (Market Price), giá đặt chính là giá thị trường hiện tại
+        my_price = market_price
+
+    total_val = float(my_price * qty)
+
     conn = get_db()
     cursor = conn.cursor(dictionary=True)
-    
+
     try:
-        # Kiểm tra thông tin thị trường (Market Data) trước
-        cursor.execute("SELECT total_vol FROM market_data WHERE symbol = %s", (symbol,))
-        market_info = cursor.fetchone()
-        
-        # Nếu mã này chưa có trong bảng market_data thì báo lỗi (hoặc coi như vol = 0)
-        available_vol = int(market_info['total_vol']) if market_info else 0
-
-        if action == "buy":
-            # --- MUA ---
-            
-            #  Kiểm tra khối lượng thị trường (total_vol)
-            if qty > available_vol:
-                flash(f"Thị trường chỉ còn {available_vol:,} cổ phiếu. Bạn không thể mua {qty:,}.", "danger")
+        # KIỂM TRA SỨC MUA / KHO
+        if side == 'BUY':
+            if float(current_user.balance) < total_val:
+                flash("Số dư không đủ!", "danger")
                 return redirect(url_for("market.stock_detail", symbol=symbol))
-
-            # Kiểm tra tiền người dùng
-            if user_balance < total_val:
-                flash("Bạn không đủ tiền trong tài khoản!", "danger")
-                return redirect(url_for("market.stock_detail", symbol=symbol))
-            
-            # THỰC HIỆN GIAO DỊCH MUA 
-            
-            #Trừ tiền người dùng
-            cursor.execute("UPDATE users SET balance = balance - %s WHERE id = %s", (total_val, current_user.id))
-            
-            # Trừ khối lượng trên thị trường (market_data)
-            cursor.execute("UPDATE market_data SET total_vol = total_vol - %s WHERE symbol = %s", (qty, symbol))
-            
-            #Cộng cổ phiếu vào Portfolio (Danh mục đầu tư)
-            cursor.execute("SELECT * FROM portfolio WHERE user_id = %s AND symbol = %s", (current_user.id, symbol))
-            port = cursor.fetchone()
-            
-            if port:
-                current_qty = int(port["quantity"])
-                current_avg = float(port["avg_price"])
-                new_qty = current_qty + qty
-                # Tính giá trung bình mới
-                new_avg = ((current_avg * current_qty) + total_val) / new_qty
-                
-                cursor.execute("UPDATE portfolio SET quantity = %s, avg_price = %s WHERE id = %s", 
-                               (new_qty, new_avg, port["id"]))
-            else:
-                cursor.execute("INSERT INTO portfolio (user_id, symbol, quantity, avg_price) VALUES (%s, %s, %s, %s)",
-                               (current_user.id, symbol, qty, price_float))
-            
-            #Lưu lịch sử
-            cursor.execute("INSERT INTO transactions (user_id, symbol, quantity, price, type, timestamp) VALUES (%s, %s, %s, %s, 'BUY', NOW())",
-                           (current_user.id, symbol, qty, price_float))
-            
-            conn.commit()
-            
-            # Cập nhật session hiển thị
-            current_user.balance -= Decimal(str(total_val)) 
-            flash(f"Mua thành công {qty} {symbol}!", "success")
-
-        elif action == "sell":
-            # BÁN 
+        else: # SELL
             cursor.execute("SELECT * FROM portfolio WHERE user_id = %s AND symbol = %s", (current_user.id, symbol))
             port = cursor.fetchone()
             
             if not port or port["quantity"] < qty:
-                flash("Bạn không đủ cổ phiếu để bán!", "danger")
+                flash("Không đủ cổ phiếu!", "danger")
                 return redirect(url_for("market.stock_detail", symbol=symbol))
-            else:
-                # Cộng tiền cho user
-                cursor.execute("UPDATE users SET balance = balance + %s WHERE id = %s", (total_val, current_user.id))
-                
-                # Cộng lại khối lượng vào thị trường (Người này bán thì thị trường có thêm hàng)
-                cursor.execute("UPDATE market_data SET total_vol = total_vol + %s WHERE symbol = %s", (qty, symbol))
 
-                #Trừ cổ phiếu trong Portfolio
-                new_qty = port["quantity"] - qty
-                if new_qty == 0:
-                    cursor.execute("DELETE FROM portfolio WHERE id = %s", (port["id"],))
+        # KHÓA TÀI SẢN (LOCK ASSETS)
+        if side == 'BUY':
+             cursor.execute("UPDATE users SET balance = balance - %s WHERE id = %s", (total_val, current_user.id))
+        else: # SELL
+             new_qty_port = port["quantity"] - qty
+             if new_qty_port == 0:
+                 cursor.execute("DELETE FROM portfolio WHERE id = %s", (port["id"],))
+             else:
+                 cursor.execute("UPDATE portfolio SET quantity = %s WHERE id = %s", (new_qty_port, port["id"]))
+
+        #MATCHING ENGINE 
+        match_found = False
+        partner_order = None
+
+        # Logic tìm đối tác 
+        if side == 'BUY':
+            if order_type == 'LO':
+                # LO Mua: Tìm người Bán giá <= giá tôi đặt
+                cursor.execute("""
+                    SELECT * FROM orders 
+                    WHERE symbol = %s AND side = 'SELL' AND status = 'PENDING' 
+                    AND price <= %s AND quantity = %s
+                    ORDER BY price ASC, created_at ASC LIMIT 1
+                """, (symbol, my_price, qty))
+            else: 
+                # MP Mua: Tìm người Bán giá RẺ NHẤT bất kể giá nào (vì tôi chấp nhận giá thị trường)
+                # Tuy nhiên để an toàn, thường chỉ khớp trong biên độ trần/sàn, ở đây ta đơn giản hóa là lấy giá tốt nhất
+                cursor.execute("""
+                    SELECT * FROM orders 
+                    WHERE symbol = %s AND side = 'SELL' AND status = 'PENDING' 
+                    AND quantity = %s
+                    ORDER BY price ASC, created_at ASC LIMIT 1
+                """, (symbol, qty))
+
+        elif side == 'SELL':
+            if order_type == 'LO':
+                # LO Bán: Tìm người Mua giá >= giá tôi đặt
+                cursor.execute("""
+                    SELECT * FROM orders 
+                    WHERE symbol = %s AND side = 'BUY' AND status = 'PENDING' 
+                    AND price >= %s AND quantity = %s
+                    ORDER BY price DESC, created_at ASC LIMIT 1
+                """, (symbol, my_price, qty))
+            else:
+                # MP Bán: Tìm người Mua giá CAO NHẤT
+                cursor.execute("""
+                    SELECT * FROM orders 
+                    WHERE symbol = %s AND side = 'BUY' AND status = 'PENDING' 
+                    AND quantity = %s
+                    ORDER BY price DESC, created_at ASC LIMIT 1
+                """, (symbol, qty))
+
+        partner_order = cursor.fetchone()
+
+        if partner_order:
+            # KHỚP LỆNH (MATCHED)
+            match_found = True
+            p_id = partner_order['id']
+            p_user_id = partner_order['user_id']
+            p_price = float(partner_order['price']) # Khớp theo giá Maker
+            
+            # Cập nhật lệnh đối tác
+            cursor.execute("UPDATE orders SET status = 'MATCHED' WHERE id = %s", (p_id,))
+            
+            # Xử lý tài sản đối tác
+            if partner_order['side'] == 'BUY': 
+                # Partner Mua -> Cộng CP
+                cursor.execute("SELECT * FROM portfolio WHERE user_id = %s AND symbol = %s", (p_user_id, symbol))
+                p_port = cursor.fetchone()
+                if p_port:
+                    pq = int(p_port['quantity'])
+                    pavg = float(p_port['avg_price'])
+                    pnew_avg = ((pavg * pq) + (p_price * qty)) / (pq + qty)
+                    cursor.execute("UPDATE portfolio SET quantity = quantity + %s, avg_price = %s WHERE id = %s", (qty, pnew_avg, p_port['id']))
                 else:
-                    cursor.execute("UPDATE portfolio SET quantity = %s WHERE id = %s", (new_qty, port["id"]))
+                    cursor.execute("INSERT INTO portfolio (user_id, symbol, quantity, avg_price) VALUES (%s, %s, %s, %s)", (p_user_id, symbol, qty, p_price))
+            else: 
+                # Partner Bán -> Cộng tiền
+                p_money = p_price * qty
+                cursor.execute("UPDATE users SET balance = balance + %s WHERE id = %s", (p_money, p_user_id))
+
+            # Lịch sử đối tác
+            cursor.execute("INSERT INTO transactions (user_id, symbol, quantity, price, type, timestamp) VALUES (%s, %s, %s, %s, %s, NOW())",
+                           (p_user_id, symbol, qty, p_price, partner_order['side']))
+
+            # Xử lý cho TÔI (Taker)
+            real_cost = p_price * qty
+            diff = total_val - real_cost 
+
+            if side == 'BUY':
+                # Hoàn tiền thừa (nếu khớp giá rẻ hơn dự kiến)
+                if diff > 0:
+                    cursor.execute("UPDATE users SET balance = balance + %s WHERE id = %s", (diff, current_user.id))
+                    current_user.balance += Decimal(str(diff))
                 
-                # Lưu lịch sử
-                cursor.execute("INSERT INTO transactions (user_id, symbol, quantity, price, type, timestamp) VALUES (%s, %s, %s, %s, 'SELL', NOW())",
-                               (current_user.id, symbol, qty, price_float))
+                # Cộng CP
+                cursor.execute("SELECT * FROM portfolio WHERE user_id = %s AND symbol = %s", (current_user.id, symbol))
+                my_port = cursor.fetchone()
+                if my_port:
+                    curr_q = int(my_port["quantity"])
+                    curr_avg = float(my_port["avg_price"])
+                    new_avg = ((curr_avg * curr_q) + real_cost) / (curr_q + qty)
+                    cursor.execute("UPDATE portfolio SET quantity = quantity + %s, avg_price = %s WHERE id = %s", (qty, new_avg, my_port["id"]))
+                else:
+                    cursor.execute("INSERT INTO portfolio (user_id, symbol, quantity, avg_price) VALUES (%s, %s, %s, %s)", (current_user.id, symbol, qty, p_price))
+            
+            else: # SELL
+                # Cộng tiền
+                income = p_price * qty
+                cursor.execute("UPDATE users SET balance = balance + %s WHERE id = %s", (income, current_user.id))
+                current_user.balance += Decimal(str(income))
+
+            # Lưu lệnh của tôi (MATCHED)
+            cursor.execute("""
+                INSERT INTO orders (user_id, symbol, side, order_type, quantity, price, status) 
+                VALUES (%s, %s, %s, %s, %s, %s, 'MATCHED')
+            """, (current_user.id, symbol, side, order_type, qty, p_price))
+
+            cursor.execute("INSERT INTO transactions (user_id, symbol, quantity, price, type, timestamp) VALUES (%s, %s, %s, %s, %s, NOW())",
+                           (current_user.id, symbol, qty, p_price, side))
+            
+            # Cập nhật giá thị trường bằng giá vừa khớp
+            cursor.execute("UPDATE market_data SET price = %s, last_updated = NOW() WHERE symbol = %s", (p_price, symbol))
+
+            flash(f"Đã khớp lệnh! Giá: {p_price:,.0f}", "success")
+        
+        else:
+            # KHÔNG TÌM THẤY ĐỐI TÁC 
+            
+            status = 'PENDING'
+            execution_price = my_price
+            
+            # Nếu là lệnh MP -> Khớp ngay với Market Maker (CafeF/Hệ thống)
+            if order_type == 'MP':
+                status = 'MATCHED'
+                execution_price = market_price 
                 
-                conn.commit()
-                current_user.balance += Decimal(str(total_val))
-                flash(f"Bán thành công {qty} {symbol}!", "success")
+                # Xử lý khớp MP với hệ thống
+                if side == 'BUY':
+                    actual_cost = execution_price * qty
+                    diff = total_val - actual_cost
+                    if diff > 0:
+                        cursor.execute("UPDATE users SET balance = balance + %s WHERE id = %s", (diff, current_user.id))
+                        current_user.balance += Decimal(str(diff))
+                    
+                    cursor.execute("SELECT * FROM portfolio WHERE user_id = %s AND symbol = %s", (current_user.id, symbol))
+                    mp = cursor.fetchone()
+                    if mp:
+                        cq = int(mp['quantity'])
+                        ca = float(mp['avg_price'])
+                        na = ((ca*cq) + actual_cost)/(cq+qty)
+                        cursor.execute("UPDATE portfolio SET quantity = quantity + %s, avg_price = %s WHERE id = %s", (qty, na, mp['id']))
+                    else:
+                        cursor.execute("INSERT INTO portfolio (user_id, symbol, quantity, avg_price) VALUES (%s, %s, %s, %s)", (current_user.id, symbol, qty, execution_price))
+                    
+                    # Trừ vol hệ thống
+                    cursor.execute("UPDATE market_data SET total_vol = total_vol - %s WHERE symbol = %s", (qty, symbol))
+                
+                else: # SELL
+                    inc = execution_price * qty
+                    cursor.execute("UPDATE users SET balance = balance + %s WHERE id = %s", (inc, current_user.id))
+                    current_user.balance += Decimal(str(inc))
+                    cursor.execute("UPDATE market_data SET total_vol = total_vol + %s WHERE symbol = %s", (qty, symbol))
+
+                cursor.execute("INSERT INTO transactions (user_id, symbol, quantity, price, type, timestamp) VALUES (%s, %s, %s, %s, %s, NOW())",
+                           (current_user.id, symbol, qty, execution_price, side))
+                           
+                flash(f"Lệnh MP đã khớp với thị trường! Giá: {execution_price:,.0f}", "success")
+            
+            else:
+                # Nếu là LO -> TREO LỆNH (PENDING)
+                flash(f"Lệnh LO giá {my_price:,.0f} đã được treo (PENDING)!", "info")
+
+            # Lưu lệnh vào Database
+            cursor.execute("""
+                INSERT INTO orders (user_id, symbol, side, order_type, quantity, price, status) 
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
+            """, (current_user.id, symbol, side, order_type, qty, execution_price, status))
+
+        conn.commit()
+        
+        # Cập nhật hiển thị tiền trên Header (nếu bị trừ tiền do pending)
+        if side == 'BUY' and not match_found and status == 'PENDING':
+             current_user.balance -= Decimal(str(total_val))
 
     except Exception as e:
         conn.rollback()
-        print(f"Lỗi Trade: {e}") 
-        flash(f"Giao dịch thất bại: {e}", "danger")
+        print(f"Trade Error: {e}") 
+        flash(f"Lỗi: {e}", "danger")
     finally:
         cursor.close()
         conn.close() 
 
     return redirect(url_for("market.stock_detail", symbol=symbol))
 
-# DANH MỤC ĐẦU TƯ 
+# HỦY LỆNH 
+@trade_bp.route("/cancel_order/<int:order_id>", methods=["POST"])
+@login_required
+def cancel_order(order_id):
+    conn = get_db()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        cursor.execute("SELECT * FROM orders WHERE id = %s AND user_id = %s AND status = 'PENDING'", (order_id, current_user.id))
+        order = cursor.fetchone()
+        if not order:
+            flash("Lỗi hủy lệnh", "danger"); return redirect(request.referrer)
+            
+        total_val = float(order['price']) * int(order['quantity'])
+        if order['side'] == 'BUY':
+            cursor.execute("UPDATE users SET balance = balance + %s WHERE id = %s", (total_val, current_user.id))
+            current_user.balance += Decimal(str(total_val))
+        elif order['side'] == 'SELL':
+            cursor.execute("SELECT id FROM portfolio WHERE user_id = %s AND symbol = %s", (current_user.id, order['symbol']))
+            port = cursor.fetchone()
+            if port: cursor.execute("UPDATE portfolio SET quantity = quantity + %s WHERE id = %s", (order['quantity'], port['id']))
+            else: cursor.execute("INSERT INTO portfolio (user_id, symbol, quantity, avg_price) VALUES (%s, %s, %s, %s)", (current_user.id, order['symbol'], order['quantity'], 0))
+        
+        cursor.execute("UPDATE orders SET status = 'CANCELLED' WHERE id = %s", (order_id,))
+        conn.commit()
+        flash("Đã hủy lệnh!", "success")
+    except Exception as e:
+        conn.rollback(); print(e); flash("Lỗi hủy", "danger")
+    finally:
+        cursor.close(); conn.close()
+    return redirect(request.referrer)
+
+# TRANG QUẢN LÝ SỔ LỆNH 
+@trade_bp.route("/orders")
+@login_required
+def orders_page():
+    conn = get_db()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute("SELECT * FROM orders WHERE user_id = %s ORDER BY created_at DESC", (current_user.id,))
+    all_orders = cursor.fetchall()
+    cursor.close(); conn.close()
+    return render_template("orders.html", orders=all_orders)
+
+# PORTFOLIO 
 @trade_bp.route("/portfolio")
 @login_required
 def portfolio():
-    conn = get_db()
-    cursor = conn.cursor(dictionary=True)
-    
-    # Lấy danh sách đang sở hữu
+    conn = get_db(); cursor = conn.cursor(dictionary=True)
     cursor.execute("SELECT * FROM portfolio WHERE user_id = %s AND quantity > 0", (current_user.id,))
-    ports = cursor.fetchall()
-    cursor.close()
-
-    data = []
-    
-    # Chuẩn bị dữ liệu vẽ biểu đồ
-    chart_labels = []
-    chart_values = []
-    
-    total_asset = float(current_user.balance) 
-    
+    ports = cursor.fetchall(); cursor.close(); conn.close()
+    data = []; total_asset = float(current_user.balance); labels=[]; vals=[]
     for p in ports:
-        avg_price = float(p["avg_price"]) 
-        quantity = int(p["quantity"]) 
+        cur = get_current_price(p["symbol"]) or float(p["avg_price"])
+        val = cur * p["quantity"]
+        total_asset += val
+        labels.append(p["symbol"]); vals.append(val)
+        data.append({"symbol": p["symbol"], "quantity": p["quantity"], "avg_price": p["avg_price"], "current_price": cur, "profit": val - (float(p["avg_price"])*p["quantity"]), "percent": 0})
+    return render_template("portfolio.html", portfolio=data, total_asset=total_asset, chart_labels=labels, chart_values=vals)
 
-        cur_price = get_current_price(p["symbol"])
-        if cur_price == 0: 
-            cur_price = avg_price 
-
-        market_val = cur_price * quantity
-        cost_val = avg_price * quantity
-        
-        profit = market_val - cost_val
-        
-        if cost_val > 0:
-            percent = (profit / cost_val) * 100
-        else:
-            percent = 0
-        
-        total_asset += market_val
-        
-        # Thêm dữ liệu vào list để vẽ biểu đồ
-        chart_labels.append(p["symbol"])
-        chart_values.append(market_val)
-
-        data.append({
-            "symbol": p["symbol"],
-            "quantity": quantity,
-            "avg_price": avg_price,
-            "current_price": cur_price,
-            "profit": profit,
-            "percent": percent
-        })
-
-    # Thêm phần "Tiền mặt" vào biểu đồ
-    chart_labels.append("Tiền mặt")
-    chart_values.append(float(current_user.balance))
-        
-    return render_template("portfolio.html", 
-                           portfolio=data, 
-                           total_asset=total_asset,
-                           chart_labels=chart_labels,
-                           chart_values=chart_values) 
-
-# TRANG LỊCH SỬ GIAO DỊCH 
+# HISTORY 
 @trade_bp.route("/history")
 @login_required
 def history():
-    conn = get_db()
-    cursor = conn.cursor(dictionary=True)
-    
-    cursor.execute("""
-        SELECT * FROM transactions 
-        WHERE user_id = %s 
-        ORDER BY timestamp DESC
-    """, (current_user.id,))
-    
-    rows = cursor.fetchall()
-    cursor.close()
-    conn.close()
-    
+    conn = get_db(); cursor = conn.cursor(dictionary=True)
+    cursor.execute("SELECT * FROM transactions WHERE user_id = %s ORDER BY timestamp DESC", (current_user.id,))
+    rows = cursor.fetchall(); cursor.close(); conn.close()
     return render_template("history.html", transactions=rows)
