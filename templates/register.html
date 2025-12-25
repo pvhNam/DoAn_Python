@@ -1,37 +1,61 @@
 {% extends "base.html" %}
-{% block title %}Đăng ký - VPS Pro{% endblock %}
+{% block title %}Đăng ký tài khoản - VPS Pro{% endblock %}
 
 {% block content %}
-<div class="auth-bg justify-content-center">
+<div class="auth-bg d-flex align-items-center justify-content-center" style="min-height: 90vh;">
     <div class="container">
         <div class="row justify-content-center">
-            <div class="col-md-4">
-                <div class="card auth-card p-4 shadow-lg">
+            <div class="col-md-5 col-lg-4">
+                <div class="glass-card p-4 shadow-lg">
                     <div class="text-center mb-4">
-                        <i class="bi bi-person-plus-fill text-warning fs-1"></i>
-                        <h3 class="text-white mt-2">Đăng Ký</h3>
-                        <p class="text-muted small">Tạo tài khoản đầu tư mới</p>
+                        <div class="bg-warning d-inline-block rounded-circle p-3 mb-2 shadow">
+                            <i class="bi bi-person-plus-fill fs-3 text-dark"></i>
+                        </div>
+                        <h3 class="fw-bold text-white">Đăng Ký</h3>
+                        <p class="text-muted small">Mở tài khoản đầu tư chứng khoán ngay</p>
                     </div>
 
                     <form method="post">
                         <div class="mb-3">
-                            <label class="text-secondary small mb-1">Tên đăng nhập</label>
-                            <input type="text" name="username" class="form-control form-control-lg bg-dark text-white border-secondary" placeholder="Nhập tên tài khoản..." required>
+                            <label class="form-label text-secondary small fw-bold">TÊN ĐĂNG NHẬP</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-dark border-secondary text-muted"><i class="bi bi-person"></i></span>
+                                <input type="text" name="username" class="form-control bg-dark text-white border-secondary" placeholder="Ví dụ: investor2025" required>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label text-secondary small fw-bold">EMAIL</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-dark border-secondary text-muted"><i class="bi bi-envelope"></i></span>
+                                <input type="email" name="email" class="form-control bg-dark text-white border-secondary" placeholder="email@vi-du.com" required>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label text-secondary small fw-bold">SỐ ĐIỆN THOẠI</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-dark border-secondary text-muted"><i class="bi bi-phone"></i></span>
+                                <input type="tel" name="phone" class="form-control bg-dark text-white border-secondary" placeholder="09xxxxxxx">
+                            </div>
                         </div>
 
                         <div class="mb-4">
-                            <label class="text-secondary small mb-1">Mật khẩu</label>
-                            <input type="password" name="password" class="form-control form-control-lg bg-dark text-white border-secondary" placeholder="Nhập mật khẩu bảo mật..." required>
+                            <label class="form-label text-secondary small fw-bold">MẬT KHẨU</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-dark border-secondary text-muted"><i class="bi bi-lock"></i></span>
+                                <input type="password" name="password" class="form-control bg-dark text-white border-secondary" placeholder="••••••••" required>
+                            </div>
                         </div>
 
-                        <button type="submit" class="btn btn-warning w-100 py-2 fw-bold text-dark mb-3">
+                        <button type="submit" class="btn btn-warning w-100 py-2 fw-bold shadow-sm mb-3">
                             ĐĂNG KÝ NGAY
                         </button>
                     </form>
                     
                     <div class="text-center border-top border-secondary pt-3">
                         <span class="text-secondary small">Đã có tài khoản?</span>
-                        <a href="{{ url_for('auth.login') }}" class="text-decoration-none text-info small ms-1">Đăng nhập</a>
+                        <a href="{{ url_for('auth.login') }}" class="text-info text-decoration-none small fw-bold ms-1">Đăng nhập</a>
                     </div>
                 </div>
             </div>
