@@ -5,8 +5,8 @@ import mysql.connector
 import re  
 
 DB_CONFIG = {
-    'user': 'root',       
-    'password': '123456',       
+    'user': 'stock_admin',       
+    'password': 'password123',       
     'host': 'localhost',
     'database': 'python', 
     'raise_on_warnings': True,
