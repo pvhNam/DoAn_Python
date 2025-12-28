@@ -359,14 +359,27 @@ endblock %} {% block content %}
 
           <hr class="border-secondary my-3" />
 
-          <div class="d-grid">
+          <div class="d-flex gap-2">
+            <!-- Nút PHÂN TÍCH AI -->
             <button
               onclick="runAI()"
               id="btn-ai"
-              class="btn btn-outline-info btn-sm fw-bold py-2"
+              class="btn btn-outline-info flex-fill fw-bold py-2"
               style="border-style: dashed"
+              title="Chạy phân tích AI để xem dự báo giá và tín hiệu"
             >
               <i class="bi bi-robot"></i> PHÂN TÍCH AI
+            </button>
+
+            <!-- Nút toggle Bollinger & MACD – nhỏ, bên cạnh -->
+            <button
+              onclick="toggleIndicators()"
+              id="btn-toggle-indicators"
+              class="btn btn-outline-secondary py-2"
+              style="border-style: dashed; width: 48px"
+              title="Bật/tắt Bollinger Bands & MACD trên biểu đồ"
+            >
+              <i class="bi bi-graph-up"></i>
             </button>
           </div>
           <div
@@ -504,306 +517,414 @@ endblock %} {% block content %}
   <script src="https://unpkg.com/lightweight-charts@4.1.1/dist/lightweight-charts.standalone.production.js"></script>
 
   <script>
-            // JS CHART
-            function calculateSMA(data, count) {
-              var avg = function (data) {
-                var sum = 0;
-                var c = 0;
-                for (var i = 0; i < data.length; i++) {
-                  sum += data[i].close;
-                  c++;
-                }
-                return sum / c;
-              };
-              var result = [];
-              for (var i = count - 1; i < data.length; i++) {
-                var val = avg(data.slice(i - count + 1, i + 1));
-                result.push({ time: data[i].time, value: val });
-              }
-              return result;
-            }
+                            // JS CHART
+                            function calculateSMA(data, count) {
+                              var avg = function (data) {
+                                var sum = 0;
+                                var c = 0;
+                                for (var i = 0; i < data.length; i++) {
+                                  sum += data[i].close;
+                                  c++;
+                                }
+                                return sum / c;
+                              };
+                              var result = [];
+                              for (var i = count - 1; i < data.length; i++) {
+                                var val = avg(data.slice(i - count + 1, i + 1));
+                                result.push({ time: data[i].time, value: val });
+                              }
+                              return result;
+                            }
 
-            const container = document.getElementById("tv-chart");
-            const loader = document.getElementById("chart-loader");
-            container.style.height = "100%";
-            if (container.clientHeight === 0) container.style.height = "500px";
+                            const container = document.getElementById("tv-chart");
+                            const loader = document.getElementById("chart-loader");
+                            container.style.height = "100%";
+                            if (container.clientHeight === 0) container.style.height = "500px";
 
-            const chart = LightweightCharts.createChart(container, {
-              layout: {
-                textColor: "#d1d4dc",
-                background: { type: "solid", color: "#131722" },
-              },
-              grid: {
-                vertLines: { color: "#2a2e39", style: 1 },
-                horzLines: { color: "#2a2e39", style: 1 },
-              },
-              rightPriceScale: {
-                visible: true,
-                scaleMargins: { top: 0.1, bottom: 0.2 },
-                borderColor: "#2a2e39",
-              },
-              timeScale: {
-                timeVisible: true,
-                secondsVisible: false,
-                borderColor: "#2a2e39",
-                rightOffset: 5,
-              },
-              crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
-              watermark: {
-                visible: true,
-                fontSize: 60,
-                horzAlign: "center",
-                vertAlign: "center",
-                color: "rgba(255, 255, 255, 0.05)",
-                text: "{{ symbol }}",
-              },
-            });
+                            const chart = LightweightCharts.createChart(container, {
+                              layout: {
+                                textColor: "#d1d4dc",
+                                background: { type: "solid", color: "#131722" },
+                              },
+                              grid: {
+                                vertLines: { color: "#2a2e39", style: 1 },
+                                horzLines: { color: "#2a2e39", style: 1 },
+                              },
+                              rightPriceScale: {
+                                visible: true,
+                                scaleMargins: { top: 0.1, bottom: 0.2 },
+                                borderColor: "#2a2e39",
+                              },
+                              timeScale: {
+                                timeVisible: true,
+                                secondsVisible: false,
+                                borderColor: "#2a2e39",
+                                rightOffset: 5,
+                              },
+                              crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
+                              watermark: {
+                                visible: true,
+                                fontSize: 60,
+                                horzAlign: "center",
+                                vertAlign: "center",
+                                color: "rgba(255, 255, 255, 0.05)",
+                                text: "{{ symbol }}",
+                              },
+                            });
 
-            const candlestickSeries = chart.addCandlestickSeries({
-              upColor: "#089981",
-              downColor: "#f23645",
-              borderVisible: false,
-              wickUpColor: "#089981",
-              wickDownColor: "#f23645",
-            });
-            const volumeSeries = chart.addHistogramSeries({
-              color: "#26a69a",
-              priceFormat: { type: "volume" },
-              priceScaleId: "",
-            });
-            chart.priceScale("").applyOptions({ scaleMargins: { top: 0.75, bottom: 0 } });
-            const ma10Series = chart.addLineSeries({
-              color: "#2962FF",
-              lineWidth: 1,
-              crosshairMarkerVisible: false,
-              lastValueVisible: false,
-              priceLineVisible: false,
-            });
-            const ma30Series = chart.addLineSeries({
-              color: "#F48FB1",
-              lineWidth: 2,
-              crosshairMarkerVisible: false,
-              lastValueVisible: true,
-              priceLineVisible: false,
-            });
+                            const candlestickSeries = chart.addCandlestickSeries({
+                              upColor: "#089981",
+                              downColor: "#f23645",
+                              borderVisible: false,
+                              wickUpColor: "#089981",
+                              wickDownColor: "#f23645",
+                            });
+                            const volumeSeries = chart.addHistogramSeries({
+                              color: "#26a69a",
+                              priceFormat: { type: "volume" },
+                              priceScaleId: "",
+                            });
+                            chart.priceScale("").applyOptions({ scaleMargins: { top: 0.75, bottom: 0 } });
+                            const ma10Series = chart.addLineSeries({
+                              color: "#2962FF",
+                              lineWidth: 1,
+                              crosshairMarkerVisible: false,
+                              lastValueVisible: false,
+                              priceLineVisible: false,
+                            });
+                            const ma30Series = chart.addLineSeries({
+                              color: "#F48FB1",
+                              lineWidth: 2,
+                              crosshairMarkerVisible: false,
+                              lastValueVisible: true,
+                              priceLineVisible: false,
+                            });
 
-            let rawData = {{ history | tojson | safe }};
-            if (rawData && rawData.length > 0) {
-              if (loader) loader.style.display = "none";
-              let candles = [];
-              let volumes = [];
-              rawData.forEach((d) => {
-                let timeStr = d.date;
-                if (timeStr && timeStr.includes("/")) {
-                  let parts = timeStr.split("/");
-                  if (parts.length === 3) {
-                    timeStr = `${parts[2]}-${parts[1].padStart(
-                      2,
-                      "0"
-                    )}-${parts[0].padStart(2, "0")}`;
-                  }
-                } else if (timeStr && timeStr.includes("-")) {
-                } else {
-                  console.warn("Ngày không hợp lệ:", timeStr);
-                  return;
-                }
+    let candles = [];
+    let volumes = [];
 
-                let volValue = Number(d.volume) || 0;
-                const isUp = d.close >= d.open;
-                const volColor = isUp
-                  ? "rgba(8, 153, 129, 0.5)"
-                  : "rgba(242, 54, 69, 0.5)";
+    let rawData = {{ history | tojson | safe }};
+    if (rawData && rawData.length > 0) {
+      if (loader) loader.style.display = "none";
 
-                candles.push({
-                  time: timeStr,
-                  open: d.open,
-                  high: d.high,
-                  low: d.low,
-                  close: d.close,
-                });
-                volumes.push({ time: timeStr, value: volValue, color: volColor });
-              });
-
-              candles.sort((a, b) => new Date(a.time) - new Date(b.time));
-              volumes.sort((a, b) => new Date(a.time) - new Date(b.time));
-
-              candlestickSeries.setData(candles);
-              volumeSeries.setData(volumes);
-              ma10Series.setData(calculateSMA(candles, 10));
-              ma30Series.setData(calculateSMA(candles, 30));
-              chart.timeScale().fitContent();
-
-              // Legend Logic
-              const legendIds = {
-                open: document.getElementById("leg-open"),
-                high: document.getElementById("leg-high"),
-                low: document.getElementById("leg-low"),
-                close: document.getElementById("leg-close"),
-                vol: document.getElementById("leg-vol"),
-              };
-              chart.subscribeCrosshairMove((param) => {
-                if (param.time) {
-                  const candleData = param.seriesData.get(candlestickSeries);
-                  const volData = param.seriesData.get(volumeSeries);
-                  if (candleData) {
-                    legendIds.open.innerText = candleData.open.toLocaleString();
-                    legendIds.high.innerText = candleData.high.toLocaleString();
-                    legendIds.low.innerText = candleData.low.toLocaleString();
-                    legendIds.close.innerText = candleData.close.toLocaleString();
-                    legendIds.close.style.color =
-                      candleData.close >= candleData.open ? "#089981" : "#f23645";
-                  }
-                  if (volData) legendIds.vol.innerText = volData.value.toLocaleString();
-                }
-              });
-            } else {
-              if (loader)
-                loader.innerHTML = '<div class="text-danger">Không có dữ liệu</div>';
-            }
-            window.addEventListener("resize", () => {
-              chart.resize(container.clientWidth, container.clientHeight);
-            });
-
-            // 2. JS FORM ĐẶT LỆNH & UI
-            const currentPrice = Number("{{ current }}");
-            const userBalance = Number(
-              "{% if current_user.is_authenticated %}{{ current_user.balance }}{% else %}0{% endif %}"
-            );
-            let currentSide = "BUY";
-
-            function setSide(side, btn) {
-              currentSide = side;
-              document.getElementById("sideInput").value = side;
-              document
-                .querySelectorAll(".btn-buy-select, .btn-sell-select")
-                .forEach((b) => b.classList.remove("active"));
-              btn.classList.add("active");
-
-              const sBtn = document.getElementById("submitBtn");
-              if (side === "BUY") {
-                sBtn.className = "btn btn-success fw-bold text-uppercase py-2 shadow-lg";
-                sBtn.innerText = "ĐẶT LỆNH MUA";
-              } else {
-                sBtn.className = "btn btn-danger fw-bold text-uppercase py-2 shadow-lg";
-                sBtn.innerText = "ĐẶT LỆNH BÁN";
-              }
-              calcTotal();
-            }
-
-            function togglePriceInput() {
-              const type = document.getElementById("orderType").value;
-              const pInp = document.getElementById("priceInput");
-              if (type === "MP") {
-                pInp.disabled = true;
-                pInp.value = currentPrice;
-                pInp.placeholder = "Thị trường";
-              } else {
-                pInp.disabled = false;
-              }
-              calcTotal();
-            }
-
-            function calcTotal() {
-              const qty = parseInt(document.getElementById("qtyInput").value) || 0;
-              let price = parseFloat(document.getElementById("priceInput").value);
-              if (document.getElementById("orderType").value === "MP" || !price)
-                price = currentPrice;
-
-              const total = price * qty;
-              const tSpan = document.getElementById("totalVal");
-              tSpan.innerText = total.toLocaleString("en-US") + " ₫";
-              if (currentSide === "BUY" && total > userBalance)
-                tSpan.style.color = "#ff4d4d";
-              else tSpan.style.color = "white";
-            }
-
-            function adjustQty(d) {
-              const q = document.getElementById("qtyInput");
-              let v = (parseInt(q.value) || 0) + d;
-              if (v < 0) v = 0;
-              q.value = v;
-              calcTotal();
-            }
-
-            function setQtyPercent(pct) {
-              if (currentPrice > 0 && userBalance > 0) {
-                let max = Math.floor(userBalance / currentPrice);
-                document.getElementById("qtyInput").value = Math.floor(max * pct);
-                calcTotal();
-              }
-            }
-
-            // 3. AI PREDICTION
-            const predSeries = chart.addLineSeries({
-      color: "#FF6B00",
-      lineWidth: 3,
-      lineStyle: LightweightCharts.LineStyle.Dashed,
-      title: "Dự báo AI 14 ngày",
-      lastValueVisible: true,
-      priceLineVisible: true,
-      priceLineColor: "#FF6B00",
-      crosshairMarkerVisible: true,
-    });
-
-            function runAI() {
-          const btn = document.getElementById("btn-ai");
-          const panel = document.getElementById("ai-panel");
-          const badge = document.getElementById("ai-trend-badge");
-          const txt = document.getElementById("ai-reason-text");
-          const symbol = "{{ symbol }}";
-
-          btn.disabled = true;
-          btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Đang phân tích...';
-          panel.style.display = "block";
-
-          fetch(`/api/predict/${symbol}`)
-            .then((r) => r.json())
-            .then((d) => {
-              if (d.data && d.data.length > 0) {
-                predSeries.setData(d.data);
-                chart.timeScale().fitContent();
-
-                const score = d.score || 0;
-                document.getElementById('ai-score-text').innerText = `AI Score: ${score}/100`;
-                const scoreBar = document.getElementById('ai-score-bar');
-                const scorePercent = document.getElementById('ai-score-percent');
-                scoreBar.style.width = `${score}%`;
-                scorePercent.innerText = `${score}%`;
-
-                if (score >= 80) scoreBar.className = "progress-bar bg-success";
-                else if (score >= 60) scoreBar.className = "progress-bar bg-success bg-opacity-75";
-                else if (score >= 40) scoreBar.className = "progress-bar bg-warning";
-                else if (score >= 20) scoreBar.className = "progress-bar bg-danger bg-opacity-75";
-                else scoreBar.className = "progress-bar bg-danger";
-
-                let badgeClass = "badge shadow fs-5 px-4 py-2";
-                if (d.trend.includes("TĂNG MẠNH")) badgeClass += " bg-success";
-                else if (d.trend.includes("TĂNG NHẸ")) badgeClass += " bg-success bg-opacity-75";
-                else if (d.trend.includes("ĐI NGANG")) badgeClass += " bg-warning text-dark";
-                else if (d.trend.includes("GIẢM NHẸ")) badgeClass += " bg-danger bg-opacity-75";
-                else badgeClass += " bg-danger";
-
-                badge.className = badgeClass;
-                badge.innerHTML = `<strong>${d.trend}</strong>`;
-
-                txt.innerHTML = d.reason.replace(/ • /g, '<br><span class="text-info fw-bold">• </span>');
-              } else {
-                txt.innerHTML = '<span class="text-danger fw-bold">Không có dữ liệu để phân tích.</span>';
-                badge.innerHTML = "<strong>KHÔNG CÓ DỮ LIỆU</strong>";
-                badge.className = "badge bg-secondary shadow fs-5 px-4 py-2";
-              }
-            })
-            .catch((e) => {
-              console.error("Lỗi AI:", e);
-              txt.innerHTML = '<span class="text-danger fw-bold">Lỗi kết nối đến server AI.</span>';
-              badge.innerHTML = "<strong>LỖI</strong>";
-              badge.className = "badge bg-danger shadow fs-5 px-4 py-2";
-            })
-            .finally(() => {
-              btn.disabled = false;
-              btn.innerHTML = '<i class="bi bi-robot"></i> PHÂN TÍCH AI';
-            });
+      rawData.forEach((d) => {
+        let timeStr = d.date;
+        if (timeStr && timeStr.includes("/")) {
+          let parts = timeStr.split("/");
+          if (parts.length === 3) {
+            timeStr = `${parts[2]}-${parts[1].padStart(2, "0")}-${parts[0].padStart(2, "0")}`;
+          }
         }
+
+        let volValue = Number(d.volume) || 0;
+        const isUp = d.close >= d.open;
+        const volColor = isUp ? "rgba(8, 153, 129, 0.5)" : "rgba(242, 54, 69, 0.5)";
+
+        candles.push({
+          time: timeStr,
+          open: d.open,
+          high: d.high,
+          low: d.low,
+          close: d.close,
+        });
+        volumes.push({ time: timeStr, value: volValue, color: volColor });
+      });
+
+      candles.sort((a, b) => new Date(a.time) - new Date(b.time));
+      volumes.sort((a, b) => new Date(a.time) - new Date(b.time));
+
+                              candlestickSeries.setData(candles);
+                              volumeSeries.setData(volumes);
+                              ma10Series.setData(calculateSMA(candles, 10));
+                              ma30Series.setData(calculateSMA(candles, 30));
+                              chart.timeScale().fitContent();
+
+                              // Legend Logic
+                              const legendIds = {
+                                open: document.getElementById("leg-open"),
+                                high: document.getElementById("leg-high"),
+                                low: document.getElementById("leg-low"),
+                                close: document.getElementById("leg-close"),
+                                vol: document.getElementById("leg-vol"),
+                              };
+                              chart.subscribeCrosshairMove((param) => {
+                                if (param.time) {
+                                  const candleData = param.seriesData.get(candlestickSeries);
+                                  const volData = param.seriesData.get(volumeSeries);
+                                  if (candleData) {
+                                    legendIds.open.innerText = candleData.open.toLocaleString();
+                                    legendIds.high.innerText = candleData.high.toLocaleString();
+                                    legendIds.low.innerText = candleData.low.toLocaleString();
+                                    legendIds.close.innerText = candleData.close.toLocaleString();
+                                    legendIds.close.style.color =
+                                      candleData.close >= candleData.open ? "#089981" : "#f23645";
+                                  }
+                                  if (volData) legendIds.vol.innerText = volData.value.toLocaleString();
+                                }
+                              });
+                            } else {
+                              if (loader)
+                                loader.innerHTML = '<div class="text-danger">Không có dữ liệu</div>';
+                            }
+                            window.addEventListener("resize", () => {
+                              chart.resize(container.clientWidth, container.clientHeight);
+                            });
+
+                            // 2. JS FORM ĐẶT LỆNH & UI
+                            const currentPrice = Number("{{ current }}");
+                            const userBalance = Number(
+                              "{% if current_user.is_authenticated %}{{ current_user.balance }}{% else %}0{% endif %}"
+                            );
+                            let currentSide = "BUY";
+
+                            function setSide(side, btn) {
+                              currentSide = side;
+                              document.getElementById("sideInput").value = side;
+                              document
+                                .querySelectorAll(".btn-buy-select, .btn-sell-select")
+                                .forEach((b) => b.classList.remove("active"));
+                              btn.classList.add("active");
+
+                              const sBtn = document.getElementById("submitBtn");
+                              if (side === "BUY") {
+                                sBtn.className = "btn btn-success fw-bold text-uppercase py-2 shadow-lg";
+                                sBtn.innerText = "ĐẶT LỆNH MUA";
+                              } else {
+                                sBtn.className = "btn btn-danger fw-bold text-uppercase py-2 shadow-lg";
+                                sBtn.innerText = "ĐẶT LỆNH BÁN";
+                              }
+                              calcTotal();
+                            }
+
+                            function togglePriceInput() {
+                              const type = document.getElementById("orderType").value;
+                              const pInp = document.getElementById("priceInput");
+                              if (type === "MP") {
+                                pInp.disabled = true;
+                                pInp.value = currentPrice;
+                                pInp.placeholder = "Thị trường";
+                              } else {
+                                pInp.disabled = false;
+                              }
+                              calcTotal();
+                            }
+
+                            function calcTotal() {
+                              const qty = parseInt(document.getElementById("qtyInput").value) || 0;
+                              let price = parseFloat(document.getElementById("priceInput").value);
+                              if (document.getElementById("orderType").value === "MP" || !price)
+                                price = currentPrice;
+
+                              const total = price * qty;
+                              const tSpan = document.getElementById("totalVal");
+                              tSpan.innerText = total.toLocaleString("en-US") + " ₫";
+                              if (currentSide === "BUY" && total > userBalance)
+                                tSpan.style.color = "#ff4d4d";
+                              else tSpan.style.color = "white";
+                            }
+
+                            function adjustQty(d) {
+                              const q = document.getElementById("qtyInput");
+                              let v = (parseInt(q.value) || 0) + d;
+                              if (v < 0) v = 0;
+                              q.value = v;
+                              calcTotal();
+                            }
+
+                            function setQtyPercent(pct) {
+                              if (currentPrice > 0 && userBalance > 0) {
+                                let max = Math.floor(userBalance / currentPrice);
+                                document.getElementById("qtyInput").value = Math.floor(max * pct);
+                                calcTotal();
+                              }
+                            }
+
+                            // 3. AI PREDICTION
+                            const predSeries = chart.addLineSeries({
+                      color: "#FF6B00",
+                      lineWidth: 3,
+                      lineStyle: LightweightCharts.LineStyle.Dashed,
+                      title: "Dự báo AI 14 ngày",
+                      lastValueVisible: true,
+                      priceLineVisible: true,
+                      priceLineColor: "#FF6B00",
+                      crosshairMarkerVisible: true,
+                    });
+        // vẽ MACD và Bollinger Bands
+        let bbUpperSeries = null;
+        let bbMidSeries = null;
+        let bbLowerSeries = null;
+        let macdLineSeries = null;
+        let macdSignalSeries = null;
+        let macdHistogramSeries = null;
+        let indicatorsVisible = false;
+
+        // Hàm toggle chỉ báo
+        function toggleIndicators() {
+          const btn = document.getElementById('btn-toggle-indicators');
+          if (!indicatorsVisible) {
+            // Bật Bollinger Bands
+            if (!bbUpperSeries && candles.length > 20) {
+              const bbData = calculateBollinger(candles);
+              bbUpperSeries = chart.addLineSeries({ color: '#9c27b0', lineWidth: 1, title: 'BB Upper' });
+              bbMidSeries = chart.addLineSeries({ color: '#ffeb3b', lineWidth: 1, title: 'BB Mid' });
+              bbLowerSeries = chart.addLineSeries({ color: '#9c27b0', lineWidth: 1, title: 'BB Lower' });
+
+              bbUpperSeries.setData(bbData.map(d => ({ time: d.time, value: d.upper })));
+              bbMidSeries.setData(bbData.map(d => ({ time: d.time, value: d.mid })));
+              bbLowerSeries.setData(bbData.map(d => ({ time: d.time, value: d.lower })));
+            }
+
+            // Bật MACD
+            if (!macdLineSeries && candles.length > 26) {
+              const macdData = calculateMACD(candles);
+              macdLineSeries = chart.addLineSeries({ color: '#2962ff', lineWidth: 2, priceScaleId: 'macd', title: 'MACD' });
+              macdSignalSeries = chart.addLineSeries({ color: '#ff6d00', lineWidth: 2, priceScaleId: 'macd', title: 'Signal' });
+              macdHistogramSeries = chart.addHistogramSeries({ priceScaleId: 'macd' });
+
+              chart.priceScale('macd').applyOptions({ scaleMargins: { top: 0.82, bottom: 0 } });
+
+              macdLineSeries.setData(macdData.macdLine);
+              macdSignalSeries.setData(macdData.signalLine);
+              macdHistogramSeries.setData(macdData.histogram);
+            }
+
+            btn.innerHTML = '<i class="bi bi-graph-up-arrow"></i>';
+          } else {
+            // Tắt
+            if (bbUpperSeries) { chart.removeSeries(bbUpperSeries); bbUpperSeries = null; }
+            if (bbMidSeries) { chart.removeSeries(bbMidSeries); bbMidSeries = null; }
+            if (bbLowerSeries) { chart.removeSeries(bbLowerSeries); bbLowerSeries = null; }
+            if (macdLineSeries) { chart.removeSeries(macdLineSeries); macdLineSeries = null; }
+            if (macdSignalSeries) { chart.removeSeries(macdSignalSeries); macdSignalSeries = null; }
+            if (macdHistogramSeries) { chart.removeSeries(macdHistogramSeries); macdHistogramSeries = null; }
+
+            btn.innerHTML = '<i class="bi bi-graph-up"></i>';
+          }
+          indicatorsVisible = !indicatorsVisible;
+        }
+
+        // Hàm tính Bollinger
+        function calculateBollinger(data, window = 20, std = 2) {
+          let result = [];
+          for (let i = window - 1; i < data.length; i++) {
+            let slice = data.slice(i - window + 1, i + 1);
+            let closes = slice.map(d => d.close);
+            let mean = closes.reduce((a, b) => a + b, 0) / window;
+            let variance = closes.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / window;
+            let stdDev = Math.sqrt(variance);
+            result.push({
+              time: data[i].time,
+              upper: mean + std * stdDev,
+              mid: mean,
+              lower: mean - std * stdDev
+            });
+          }
+          return result;
+        }
+
+        // Hàm tính MACD
+        function calculateMACD(data, fast = 12, slow = 26, signal = 9) {
+          function ema(series, period) {
+            const k = 2 / (period + 1);
+            let emaArray = new Array(series.length);
+            emaArray[period - 1] = series.slice(0, period).reduce((a, b) => a + b, 0) / period;
+            for (let i = period; i < series.length; i++) {
+              emaArray[i] = series[i] * k + emaArray[i - 1] * (1 - k);
+            }
+            return emaArray;
+          }
+
+          const close = data.map(d => d.close);
+          const emaFast = ema(close, fast);
+          const emaSlow = ema(close, slow);
+
+          let macdLine = [];
+          for (let i = slow - 1; i < close.length; i++) {
+            macdLine.push({ time: data[i].time, value: emaFast[i] - emaSlow[i] });
+          }
+
+          const signalValues = ema(macdLine.map(d => d.value), signal);
+          let signalLine = [];
+          for (let i = signal - 1; i < macdLine.length; i++) {
+            signalLine.push({ time: macdLine[i].time, value: signalValues[i] });
+          }
+
+          let histogram = [];
+          for (let i = 0; i < macdLine.length; i++) {
+            const sig = signalLine.find(s => s.time === macdLine[i].time);
+            if (sig) {
+              const val = macdLine[i].value - sig.value;
+              histogram.push({
+                time: macdLine[i].time,
+                value: val,
+                color: val >= 0 ? '#089981' : '#f23645'
+              });
+            }
+          }
+
+          return { macdLine, signalLine, histogram };
+        }
+
+                          function runAI() {
+                          const btn = document.getElementById("btn-ai");
+                          const panel = document.getElementById("ai-panel");
+                          const badge = document.getElementById("ai-trend-badge");
+                          const txt = document.getElementById("ai-reason-text");
+                          const symbol = "{{ symbol }}";
+
+                          btn.disabled = true;
+                          btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Đang phân tích...';
+                          panel.style.display = "block";
+
+                          fetch(`/api/predict/${symbol}`)
+                            .then((r) => r.json())
+                            .then((d) => {
+                              if (d.data && d.data.length > 0) {
+                                predSeries.setData(d.data);
+                                chart.timeScale().fitContent();
+
+                                const score = d.score || 0;
+                                document.getElementById('ai-score-text').innerText = `AI Score: ${score}/100`;
+                                const scoreBar = document.getElementById('ai-score-bar');
+                                const scorePercent = document.getElementById('ai-score-percent');
+                                scoreBar.style.width = `${score}%`;
+                                scorePercent.innerText = `${score}%`;
+
+                                if (score >= 80) scoreBar.className = "progress-bar bg-success";
+                                else if (score >= 60) scoreBar.className = "progress-bar bg-success bg-opacity-75";
+                                else if (score >= 40) scoreBar.className = "progress-bar bg-warning";
+                                else if (score >= 20) scoreBar.className = "progress-bar bg-danger bg-opacity-75";
+                                else scoreBar.className = "progress-bar bg-danger";
+
+                                let badgeClass = "badge shadow fs-5 px-4 py-2";
+                                if (d.trend.includes("TĂNG MẠNH")) badgeClass += " bg-success";
+                                else if (d.trend.includes("TĂNG NHẸ")) badgeClass += " bg-success bg-opacity-75";
+                                else if (d.trend.includes("ĐI NGANG")) badgeClass += " bg-warning text-dark";
+                                else if (d.trend.includes("GIẢM NHẸ")) badgeClass += " bg-danger bg-opacity-75";
+                                else badgeClass += " bg-danger";
+
+                                badge.className = badgeClass;
+                                badge.innerHTML = `<strong>${d.trend}</strong>`;
+
+                                txt.innerHTML = d.reason.replace(/ • /g, '<br><span class="text-info fw-bold">• </span>');
+                              } else {
+                                txt.innerHTML = '<span class="text-danger fw-bold">Không có dữ liệu để phân tích.</span>';
+                                badge.innerHTML = "<strong>KHÔNG CÓ DỮ LIỆU</strong>";
+                                badge.className = "badge bg-secondary shadow fs-5 px-4 py-2";
+                              }
+                            })
+                            .catch((e) => {
+                              console.error("Lỗi AI:", e);
+                              txt.innerHTML = '<span class="text-danger fw-bold">Lỗi kết nối đến server AI.</span>';
+                              badge.innerHTML = "<strong>LỖI</strong>";
+                              badge.className = "badge bg-danger shadow fs-5 px-4 py-2";
+                            })
+                            .finally(() => {
+                              btn.disabled = false;
+                              btn.innerHTML = '<i class="bi bi-robot"></i> PHÂN TÍCH AI';
+                            });
+                        }
   </script>
   {% endblock %}
 </div>
