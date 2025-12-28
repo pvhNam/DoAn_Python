@@ -162,11 +162,12 @@ def market():
 def api_predict(symbol):
     symbol = symbol.upper()
     try:
-        data, trend, reason = predict_trend(symbol, days_ahead=14)
+        data, trend, reason, score = predict_trend(symbol, days_ahead=14)
         return jsonify({
             "symbol": symbol,
             "trend": trend,
             "reason": reason,
+            "score": score,
             "data": data 
         })
     except Exception as e:

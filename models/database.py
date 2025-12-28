@@ -31,3 +31,4 @@ def init_db():
             print("Kết nối MySQL thành công!")
     except Exception as e:
         print(f"Lỗi kết nối MySQL: {e}")
+        
