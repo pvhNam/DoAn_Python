@@ -2,12 +2,12 @@ import requests
 import time
 from datetime import datetime
 import mysql.connector
-import re  # [NEW] Thêm thư viện xử lý chuỗi regex
+import re  
 
 # --- CẤU HÌNH DATABASE ---
 DB_CONFIG = {
-    'user': 'root',       
-    'password': '123456',       
+    'user': 'python',       
+    'password': '12345',       
     'host': 'localhost',
     'database': 'python', 
     'raise_on_warnings': True,

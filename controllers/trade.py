@@ -171,7 +171,7 @@ def trade():
             cursor.execute("INSERT INTO transactions (user_id, symbol, quantity, price, type, timestamp) VALUES (%s, %s, %s, %s, %s, NOW())",
                            (p_user_id, symbol, qty, p_price, partner_order['side']))
 
-            # Xử lý cho TÔI (Taker)
+            # Xử lý cho TÔI 
             real_cost = p_price * qty
             diff = total_val - real_cost 
 
@@ -214,7 +214,6 @@ def trade():
         
         else:
             # KHÔNG TÌM THẤY ĐỐI TÁC 
-            
             status = 'PENDING'
             execution_price = my_price
             

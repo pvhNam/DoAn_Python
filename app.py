@@ -86,6 +86,6 @@ if __name__ == "__main__":
     #gọi hàm cập nhật trước khi lên web
     update_market_data_startup()
     
-    #  Server bắt đầu chạy
+    #  Server
     print(" Server đang khởi động tại http://127.0.0.1:5000")
     app.run(debug=True, port=5000)
