@@ -12,35 +12,32 @@ market_bp = Blueprint("market", __name__)
 # --- 1. CHI TIẾT CỔ PHIẾU ---
 @market_bp.route("/market/<symbol>")
 def stock_detail(symbol):
-    symbol = symbol.upper()
+    symbol = symbol.upper().strip() # Thêm .strip() để xóa khoảng trắng thừa nếu có
     
-    # Lấy giá hiện tại (Realtime hoặc giả lập nếu API lỗi)
     current_price = get_current_price(symbol)
     if current_price == 0:
         current_price = 10000 
     
     history = []
-    conn = None
+    order_book = []  
+    
+    conn = get_db()
     cursor = None
     
     try:
-        conn = get_db()
-        if conn is None: raise Exception("Không thể kết nối Database")
-        # Reconnect nếu bị ngắt
-        if not conn.is_connected(): conn.ping(reconnect=True, attempts=3, delay=2)
-
-        cursor = conn.cursor(dictionary=True)
-        
-        # Lấy lịch sử giá
-        sql = """
+        if not conn.is_connected():
+            conn.ping(reconnect=True, attempts=3, delay=2)
+            
+        # 1. LẤY LỊCH SỬ GIÁ
+        cursor = conn.cursor(dictionary=True) # Mở cursor 1
+        cursor.execute("""
             SELECT date, open, high, low, close, volume, percent_change
             FROM stock_history
             WHERE symbol = %s 
             ORDER BY date ASC
-        """
-        cursor.execute(sql, (symbol,))
+        """, (symbol,))
         rows = cursor.fetchall()
-
+        
         for row in rows:
             history.append({
                 'date': str(row['date']), 
@@ -49,31 +46,81 @@ def stock_detail(symbol):
                 'low': float(row['low']),
                 'close': float(row['close']),
                 'volume': int(row['volume']),
-                # Xử lý percent_change: Nếu có thì float, không thì 0.0
                 'percent_change': float(row['percent_change']) if row.get('percent_change') is not None else 0.0
             })
+        
+        # [QUAN TRỌNG] Đóng cursor lịch sử ngay sau khi dùng xong để tránh lỗi xung đột
+        cursor.close() 
+        cursor = None 
+
+        # 2. LẤY SỔ LỆNH (Đưa ra ngoài if login để ai cũng xem được)
+        try:
+            # Mở lại kết nối nếu lỡ bị đóng
+            if not conn.is_connected(): conn.ping(reconnect=True, attempts=3, delay=2)
+
+            cursor_order = conn.cursor(dictionary=True, buffered=True)
             
-    except Exception as e:
-        print(f"Lỗi chart ({symbol}): {e}")
-        history = []
+            # Lấy 50 lệnh mới nhất (PENDING hoặc MATCHED)
+            sql_order = """
+                SELECT * FROM orders 
+                WHERE symbol = %s 
+                AND status IN ('PENDING', 'MATCHED')
+                ORDER BY created_at DESC 
+                LIMIT 50
+            """
+            cursor_order.execute(sql_order, (symbol,))
+            raw_orders = cursor_order.fetchall()
+            
+            order_book = [] # Reset lại danh sách
+            
+            for o in raw_orders:
+                # Xử lý thời gian an toàn hơn
+                c_at = o.get('created_at')
+                time_display = "--:--"
+                
+                if c_at:
+                    try:
+                        if hasattr(c_at, 'strftime'):
+                            time_display = c_at.strftime('%H:%M')
+                        else:
+                            # Nếu là chuỗi, cắt chuỗi thủ công
+                            s = str(c_at)
+                            if len(s) >= 16:
+                                time_display = s[11:16]
+                            else:
+                                time_display = s 
+                    except:
+                        time_display = "Lỗi giờ"
+                
+                # Gán lại vào dict
+                o['time_str'] = time_display 
+                
+                # Quan trọng: Đảm bảo các trường số không bị None để tránh lỗi HTML
+                o['price'] = float(o['price']) if o['price'] else 0.0
+                o['quantity'] = int(o['quantity']) if o['quantity'] else 0
+                
+                order_book.append(o)
+            
+            cursor_order.close()
+            
+            # [DEBUG QUAN TRỌNG] In ra terminal để kiểm tra
+            print(f"✅ Đã lấy được {len(order_book)} lệnh cho mã {symbol}")
+
+        except Exception as e_order:
+            print(f"⚠️ LỖI LẤY SỔ LỆNH CHI TIẾT: {e_order}")
+            order_book = [] # Trả về rỗng nếu lỗi
         
     finally:
-        if cursor: cursor.close()
-        # [QUAN TRỌNG] KHÔNG ĐÓNG CONN ĐỂ TRÁNH LỖI FLASK-LOGIN
-    order_book = []
-    if current_user.is_authenticated:
-        conn = get_db()
-        cursor = conn.cursor(dictionary=True)
-        cursor.execute("SELECT * FROM orders WHERE user_id = %s AND symbol = %s ORDER BY created_at DESC LIMIT 20", (current_user.id, symbol))
-        order_book = cursor.fetchall()
-        cursor.close()
-        conn.close()
+        # Đảm bảo đóng kết nối nếu cursor vẫn còn mở (phòng hờ)
+        if cursor:
+            cursor.close()
+    
     return render_template(
-        "stock_detail.html", 
-        symbol=symbol, 
-        current=current_price, 
-        history=history, 
-        order_book=order_book
+        "stock_detail.html",
+        symbol=symbol,
+        current=current_price,
+        history=history,
+        order_book=order_book   
     )
 
 # --- 2. DANH SÁCH THỊ TRƯỜNG (BẢNG GIÁ) ---
