@@ -5,6 +5,8 @@ from models.user import get_user_by_id
 from utils.cafef import get_current_price
 import time
 
+import os
+
 from controllers.auth import auth_bp
 from controllers.market import market_bp
 from controllers.trade import trade_bp
@@ -83,9 +85,13 @@ def update_market_data_startup():
         print(" Đã cập nhật xong Database!")
 
 if __name__ == "__main__":
-    #gọi hàm cập nhật trước khi lên web
-    update_market_data_startup()
-    
-    #  Server bắt đầu chạy
-    print(" Server đang khởi động tại http://127.0.0.1:5000")
-    app.run(debug=True, port=5000)
+    # Chỉ chạy hàm update khi ở trong tiến trình Main (chạy thực sự)
+    # Biến môi trường WERKZEUG_RUN_MAIN = 'true' nghĩa là đây là tiến trình con đã restart
+    if os.environ.get('WERKZEUG_RUN_MAIN') == 'true':
+        print("🔄 Đang chạy tiến trình Worker: Cập nhật dữ liệu...")
+        update_market_data_startup()
+    else:
+        print("👁️ Đang chạy tiến trình Watcher (Bỏ qua cập nhật dữ liệu)")
+
+    # Chạy app
+    app.run(debug=True)
