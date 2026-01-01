@@ -4,7 +4,6 @@ import yfinance as yf
 from flask import jsonify, Blueprint, render_template, request, flash, redirect, url_for
 from flask_login import login_required, current_user 
 from utils.cafef import get_current_price
-from utils.analysis import predict_trend
 import random
 import time
 from models.database import get_db
@@ -12,6 +11,10 @@ import base64
 from utils.gemini_analysis import analyze_chart_image
 import tempfile
 import os
+
+# [QUAN TRỌNG] Import bộ não AI mới của bạn
+from utils.ai_prediction import predict_with_lstm
+from utils.analysis import predict_trend # Corrected import name
 
 market_bp = Blueprint("market", __name__)
 
@@ -119,12 +122,37 @@ def market():
         
     return render_template("market.html", stocks=stock_data)
 
+<<<<<<< Updated upstream
 
 # API AI PREDICT (giữ nguyên - vì analysis.py dùng yfinance nên đã tự động adjusted)
+=======
+# --- 3. API AI PREDICT ---
+@market_bp.route("/api/analyze/<symbol>")
+def api_analyze(symbol):
+    symbol = symbol.upper()
+    try:
+        _, trend, reason, score = predict_trend(symbol)  # Corrected function call
+        print(f"DEBUG RULE-BASED {symbol}: {trend, reason, score}") 
+        return jsonify({
+            "trend": trend,
+            "reason": reason,
+            "score": score
+        })
+    except Exception as e:
+        print(f"❌ LỖI NGHIÊM TRỌNG KHI GỌI ANALYSIS: {e}")
+        return jsonify({
+            "trend": "LỖI",
+            "reason": "Server gặp sự cố khi gọi phân tích rule-based.",
+            "score": 0
+        })
+
+# --- API AI PREDICT (Giữ nguyên) ---
+>>>>>>> Stashed changes
 @market_bp.route("/api/predict/<symbol>")
 def api_predict(symbol):
     symbol = symbol.upper()
     try:
+<<<<<<< Updated upstream
         data, trend, reason = predict_trend(symbol, days_ahead=14)
         return jsonify({
             "symbol": symbol,
@@ -164,3 +192,15 @@ def api_gemini(symbol):
     except Exception as e:
         print(f"Lỗi API Gemini: {e}")
         return jsonify({"error": "Lỗi xử lý ảnh hoặc gọi Gemini"}), 500
+=======
+        result = predict_with_lstm(symbol)
+        print(f"DEBUG AI LSTM {symbol}: {result}") 
+        return jsonify(result)
+    except Exception as e:
+        print(f"❌ LỖI NGHIÊM TRỌNG KHI GỌI AI: {e}")
+        return jsonify({
+            "trend": "LỖI",
+            "reason": "Server gặp sự cố khi gọi AI.",
+            "next_price": 0
+        })
+>>>>>>> Stashed changes
