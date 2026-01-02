@@ -76,6 +76,20 @@ endblock %} {% block content %}
     background: #444;
     border-radius: 2px;
   }
+
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: #1e222d; 
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #444; 
+    border-radius: 3px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #666; 
+}
 </style>
 
 <div class="container-fluid px-4 mt-2">
@@ -162,208 +176,162 @@ endblock %} {% block content %}
       </div>
     </div>
 
-    <div
-      class="col-md-3 bg-dark-panel d-flex flex-column"
-      style="background: #1e222d; border-left: 1px solid #2a2e39"
-    >
-      <div class="p-3 pb-0">
-        <ul class="nav nav-pills nav-fill" id="sidebarTab" role="tablist">
+    <div class="col-md-3 bg-dark-panel d-flex flex-column h-100" 
+         style="background: #1e222d; border-left: 1px solid #2a2e39;">
+      
+      <div class="p-3 pb-0 flex-shrink-0"> <ul class="nav nav-pills nav-fill" id="sidebarTab" role="tablist">
           <li class="nav-item" role="presentation">
-            <button
-              class="nav-link active"
-              id="trade-tab"
-              data-bs-toggle="pill"
-              data-bs-target="#pills-trade"
-              type="button"
-            >
+            <button class="nav-link active" id="trade-tab" data-bs-toggle="pill" data-bs-target="#pills-trade" type="button">
               ĐẶT LỆNH
             </button>
           </li>
           <li class="nav-item" role="presentation">
-            <button
-              class="nav-link"
-              id="book-tab"
-              data-bs-toggle="pill"
-              data-bs-target="#pills-book"
-              type="button"
-            >
+            <button class="nav-link" id="book-tab" data-bs-toggle="pill" data-bs-target="#pills-book" type="button">
               SỔ LỆNH
             </button>
           </li>
         </ul>
       </div>
 
-      <div class="tab-content flex-grow-1 overflow-hidden" id="sidebarTabContent">
-    
-    <div class="tab-pane fade show active h-100 overflow-auto p-3" id="pills-trade" role="tabpanel" aria-labelledby="trade-tab">
-        {% if current_user.is_authenticated %}
-        <form action="{{ url_for('trade.trade') }}" method="post" id="tradeForm">
-            <input type="hidden" name="symbol" value="{{ symbol }}" />
-            <input type="hidden" name="side" id="sideInput" value="BUY" />
-
-            <div class="d-flex gap-2 mb-3">
-                <button type="button" class="btn btn-outline-secondary w-50 fw-bold btn-buy-select active" onclick="setSide('BUY', this)">MUA</button>
-                <button type="button" class="btn btn-outline-secondary w-50 fw-bold btn-sell-select" onclick="setSide('SELL', this)">BÁN</button>
-            </div>
-
-            <div class="d-flex justify-content-between mb-3 p-2 rounded bg-black bg-opacity-25 border border-secondary">
-                <span class="text-secondary small">Khả dụng:</span>
-                <span class="text-warning fw-bold">{{ "{:,.0f}".format(current_user.balance) }} ₫</span>
-            </div>
-
-            <div class="row g-2 mb-3">
-                <div class="col-4">
-                    <label class="text-secondary small mb-1">Loại</label>
-                    <select name="order_type" id="orderType" class="form-select form-select-sm bg-dark text-white border-secondary" onchange="togglePriceInput()">
-                        <option value="MP">MP</option>
-                        <option value="LO">LO</option>
-                    </select>
-                </div>
-                <div class="col-8">
-                    <label class="text-secondary small mb-1">Giá đặt (VNĐ)</label>
-                    <input type="number" name="price_limit" id="priceInput" class="form-control form-control-sm bg-dark text-white border-secondary fw-bold" placeholder="Thị trường" disabled value="{{ current }}" step="100" oninput="calcTotal()" />
-                </div>
-            </div>
-
-            <div class="mb-3">
-                <label class="text-secondary small mb-1">Khối lượng</label>
-                <div class="input-group input-group-sm">
-                    <button type="button" class="btn btn-outline-secondary" onclick="adjustQty(-100)">-</button>
-                    <input type="number" name="quantity" id="qtyInput" class="form-control bg-dark border-secondary text-white text-center fw-bold" placeholder="0" step="100" min="100" required oninput="calcTotal()" />
-                    <button type="button" class="btn btn-outline-secondary" onclick="adjustQty(100)">+</button>
-                </div>
-            </div>
-
-            <div class="mb-3 d-flex justify-content-between gap-1">
-                <button type="button" onclick="setQtyPercent(0.25)" class="btn btn-xs btn-outline-secondary flex-fill" style="font-size: 11px">25%</button>
-                <button type="button" onclick="setQtyPercent(0.5)" class="btn btn-xs btn-outline-secondary flex-fill" style="font-size: 11px">50%</button>
-                <button type="button" onclick="setQtyPercent(1)" class="btn btn-xs btn-outline-secondary flex-fill" style="font-size: 11px">All</button>
-            </div>
-
-            <div class="mb-3 text-end">
-                <span class="text-secondary small me-2">Tổng giá trị:</span>
-                <span class="fs-6 fw-bold text-white" id="totalVal">0 ₫</span>
-            </div>
-
-            <div class="d-grid">
-                <button type="submit" id="submitBtn" class="btn btn-success fw-bold text-uppercase py-2 shadow-lg">ĐẶT LỆNH MUA</button>
-            </div>
-        </form>
-        {% else %}
-        <div class="text-center py-5">
-            <i class="bi bi-lock-fill text-secondary" style="font-size: 2rem"></i>
-            <p class="text-muted mt-3 small">Vui lòng đăng nhập để giao dịch.</p>
-            <a href="{{ url_for('auth.login') }}" class="btn btn-warning btn-sm fw-bold">ĐĂNG NHẬP</a>
-        </div>
-        {% endif %}
+      <div class="tab-content flex-grow-1 overflow-hidden" id="sidebarTabContent" style="min-height: 0;">
         
-        <hr class="border-secondary my-3" />
-        
-        <div class="d-flex gap-2">
-            <button onclick="runAI()" id="btn-ai" class="btn btn-outline-info flex-fill fw-bold py-2" style="border-style: dashed" title="Chạy phân tích AI"><i class="bi bi-robot"></i> PHÂN TÍCH AI</button>
-            <button onclick="toggleIndicators()" id="btn-toggle-indicators" class="btn btn-outline-secondary py-2" style="border-style: dashed; width: 48px"><i class="bi bi-graph-up"></i></button>
-        </div>
+        <div class="tab-pane fade show active h-100 overflow-auto p-3 custom-scrollbar" id="pills-trade" role="tabpanel">
+            
+            {% if current_user.is_authenticated %}
+            <form action="{{ url_for('trade.trade') }}" method="post" id="tradeForm">
+                <input type="hidden" name="symbol" value="{{ symbol }}" />
+                <input type="hidden" name="side" id="sideInput" value="BUY" />
 
-        <div id="ai-panel" class="mt-3 p-3 rounded border border-primary bg-gradient bg-dark bg-opacity-75 shadow" style="display: none; font-size: 0.85rem">
-            <div class="text-center mb-3">
-                <h5 class="text-primary mb-2"><i class="bi bi-cpu-fill"></i> PHÂN TÍCH AI !</h5>
-                <div class="mb-3">
-                    <div class="fs-3 fw-bold text-white" id="ai-score-text">Analyzing...</div>
-                    <div class="progress mt-2" style="height: 20px">
-                        <div id="ai-score-bar" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%"><span id="ai-score-percent">0%</span></div>
+                <div class="d-flex gap-2 mb-3">
+                    <button type="button" class="btn btn-outline-secondary w-50 fw-bold btn-buy-select active" onclick="setSide('BUY', this)">MUA</button>
+                    <button type="button" class="btn btn-outline-secondary w-50 fw-bold btn-sell-select" onclick="setSide('SELL', this)">BÁN</button>
+                </div>
+                
+                <div class="d-flex justify-content-between mb-3 p-2 rounded bg-black bg-opacity-25 border border-secondary">
+                    <span class="text-secondary small">Khả dụng:</span>
+                    <span class="text-warning fw-bold">{{ "{:,.0f}".format(current_user.balance) }} ₫</span>
+                </div>
+
+                <div class="row g-2 mb-3">
+                    <div class="col-4">
+                        <label class="text-secondary small mb-1">Loại</label>
+                        <select name="order_type" id="orderType" class="form-select form-select-sm bg-dark text-white border-secondary" onchange="togglePriceInput()">
+                            <option value="MP">MP</option>
+                            <option value="LO">LO</option>
+                        </select>
+                    </div>
+                    <div class="col-8">
+                        <label class="text-secondary small mb-1">Giá đặt</label>
+                        <input type="number" name="price_limit" id="priceInput" class="form-control form-control-sm bg-dark text-white border-secondary fw-bold" placeholder="Thị trường" disabled value="{{ current }}" step="100" oninput="calcTotal()" />
                     </div>
                 </div>
-                <span id="ai-trend-badge" class="badge fs-5 px-4 py-2 shadow"></span>
-            </div>
-            <hr class="border-secondary" />
-            <div id="ai-reason-text" class="text-white small lh-lg">Đang kết nối...</div>
-        </div>
-        
-        <div class="p-2 border-top border-secondary text-center mt-3">
-            <a href="{{ url_for('market.market') }}" class="text-decoration-none text-secondary small hover-white"><i class="bi bi-arrow-left"></i> Quay lại</a>
-        </div>
-    </div>
 
-    <div class="tab-pane fade h-100 order-book-scroll p-3" id="pills-book" role="tabpanel" aria-labelledby="book-tab">
-        
-        <div class="text-white small mb-2 border-bottom border-secondary pb-2">
-            Trạng thái tải: 
-            {% if order_book is defined and order_book|length > 0 %}
-                <span class="text-success fw-bold">Đã tải: ({{ order_book|length }} lệnh)</span>
+                <div class="mb-3">
+                    <label class="text-secondary small mb-1">Khối lượng</label>
+                    <div class="input-group input-group-sm">
+                        <button type="button" class="btn btn-outline-secondary" onclick="adjustQty(-100)">-</button>
+                        <input type="number" name="quantity" id="qtyInput" class="form-control bg-dark border-secondary text-white text-center fw-bold" placeholder="0" step="100" min="100" required oninput="calcTotal()" />
+                        <button type="button" class="btn btn-outline-secondary" onclick="adjustQty(100)">+</button>
+                    </div>
+                </div>
+                
+                <div class="mb-3 d-flex justify-content-between gap-1">
+                     <button type="button" onclick="setQtyPercent(0.25)" class="btn btn-xs btn-outline-secondary flex-fill" style="font-size: 11px">25%</button>
+                     <button type="button" onclick="setQtyPercent(0.5)" class="btn btn-xs btn-outline-secondary flex-fill" style="font-size: 11px">50%</button>
+                     <button type="button" onclick="setQtyPercent(1)" class="btn btn-xs btn-outline-secondary flex-fill" style="font-size: 11px">All</button>
+                </div>
+
+                <div class="mb-3 text-end">
+                    <span class="text-secondary small me-2">Tổng:</span>
+                    <span class="fs-6 fw-bold text-white" id="totalVal">0 ₫</span>
+                </div>
+
+                <div class="d-grid">
+                    <button type="submit" id="submitBtn" class="btn btn-success fw-bold text-uppercase py-2 shadow-lg">ĐẶT LỆNH MUA</button>
+                </div>
+            </form>
             {% else %}
-                <span class="text-warning">Trống (0 lệnh)</span>
+            <div class="text-center py-5">
+                    <p class="text-muted small">Vui lòng đăng nhập để giao dịch.</p>
+                 </div>
+            {% endif %}
+
+            <hr class="border-secondary my-3" />
+            
+            <div class="d-flex gap-2">
+                <button onclick="runAI()" id="btn-ai" class="btn btn-outline-info flex-fill fw-bold py-2" style="border-style: dashed"><i class="bi bi-robot"></i> PHÂN TÍCH AI</button>
+                <button onclick="toggleIndicators()" id="btn-toggle-indicators" class="btn btn-outline-secondary py-2" style="width: 48px"><i class="bi bi-graph-up"></i></button>
+            </div>
+
+            <div id="ai-panel" class="mt-3 p-3 rounded border border-primary bg-gradient bg-dark bg-opacity-75 shadow" style="display: none; font-size: 0.85rem">
+                <div class="text-center mb-3">
+                    <h5 class="text-primary mb-2"><i class="bi bi-cpu-fill"></i> PHÂN TÍCH AI !</h5>
+                    <div class="mb-3">
+                        <div class="fs-3 fw-bold text-white" id="ai-score-text">Analyzing...</div>
+                        <div class="progress mt-2" style="height: 20px">
+                            <div id="ai-score-bar" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%"><span id="ai-score-percent">0%</span></div>
+                        </div>
+                    </div>
+                    <span id="ai-trend-badge" class="badge fs-5 px-4 py-2 shadow"></span>
+                </div>
+                <hr class="border-secondary" />
+                <div id="ai-reason-text" class="text-white" style="text-align: left; font-size: 0.9rem; line-height: 1.6;"></div>
+            </div>
+
+            <div class="p-2 border-top border-secondary text-center mt-3 mb-5">
+                <a href="{{ url_for('market.market') }}" class="text-decoration-none text-secondary small hover-white"><i class="bi bi-arrow-left"></i> Quay lại</a>
+            </div>
+
+        </div>
+
+        <div class="tab-pane fade h-100 overflow-auto custom-scrollbar p-3" id="pills-book" role="tabpanel">
+            <div class="text-white small mb-2 border-bottom border-secondary pb-2">
+                Trạng thái: 
+                {% if order_book is defined and order_book|length > 0 %}
+                    <span class="text-success fw-bold">Active ({{ order_book|length }})</span>
+                {% else %}
+                    <span class="text-warning">Trống</span>
+                {% endif %}
+            </div>
+             {% if order_book and order_book|length > 0 %}
+            <div class="table-responsive">
+                <table class="table table-dark table-striped table-hover mb-0 order-table" style="font-size: 0.85rem;">
+                    <thead class="sticky-top bg-dark"> <tr>
+                            <th class="ps-3 text-secondary">Lệnh</th>
+                            <th class="text-end text-secondary">Giá</th>
+                            <th class="text-end text-secondary">KL</th>
+                            <th class="text-end pe-3 text-secondary">TT</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for order in order_book %}
+                        <tr>
+                            <td class="ps-3 align-middle">
+                                <span class="{{ 'text-success' if order.side == 'BUY' else 'text-danger' }} fw-bold">{{ 'MUA' if order.side == 'BUY' else 'BÁN' }}</span>
+                                <br><small class="text-muted" style="font-size: 10px;">{{ order.time_str }}</small>
+                            </td>
+                            <td class="text-end text-white align-middle">{{ "{:,.0f}".format(order.price) }}</td>
+                            <td class="text-end text-white align-middle font-monospace">{{ "{:,}".format(order.quantity) }}</td>
+                            <td class="text-end pe-3 align-middle">
+                                {% if order.status == 'PENDING' %}
+                                    <span class="text-warning" style="font-size: 10px;">Chờ khớp</span>
+                                {% else %}
+                                    <span class="text-success" style="font-size: 10px;">Đã khớp</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+                <p class="text-center text-muted mt-5">Chưa có lệnh nào.</p>
             {% endif %}
         </div>
 
-        {% if order_book and order_book|length > 0 %}
-        <div class="table-responsive">
-            <table class="table table-dark table-striped table-hover mb-0 order-table" style="font-size: 0.85rem;">
-                <thead class="sticky-top bg-dark">
-                    <tr>
-                        <th class="ps-3 text-secondary">Lệnh</th>
-                        <th class="text-end text-secondary">Giá</th>
-                        <th class="text-end text-secondary">KL</th>
-                        <th class="text-end pe-3 text-secondary">TT</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for order in order_book %}
-                    <tr>
-                        <td class="ps-3 align-middle">
-                            {% if order.side == 'BUY' %}
-                                <span class="fw-bold text-success">MUA</span>
-                            {% else %}
-                                <span class="fw-bold text-danger">BÁN</span>
-                            {% endif %}
-                            <br>
-                            <small class="text-muted" style="font-size: 10px;">{{ order.time_str }}</small>
-                        </td>
-
-                        <td class="text-end text-white align-middle">
-                            {% if order.order_type == 'MP' %}
-                                <span class="badge bg-secondary">MP</span>
-                            {% else %}
-                                {{ "{:,.0f}".format(order.price|float) }}
-                            {% endif %}
-                        </td>
-
-                        <td class="text-end text-white align-middle font-monospace">
-                            {{ "{:,}".format(order.quantity|int) }}
-                        </td>
-
-                        <td class="text-end pe-3 align-middle">
-                            {% if order.status == 'PENDING' %}
-                                {% if current_user.is_authenticated and (current_user.id|string == order.user_id|string) %}
-                                    <form action="{{ url_for('trade.cancel_order', order_id=order.id) }}" method="POST" class="d-inline">
-                                        <button type="submit" class="btn btn-outline-warning btn-sm py-0 px-2" style="font-size: 10px; border: 1px dashed #ffc107;" title="Hủy lệnh">
-                                            Hủy <i class="bi bi-x"></i>
-                                        </button>
-                                    </form>
-                                {% else %}
-                                    <span class="text-secondary fst-italic" style="font-size: 10px;">Chờ khớp</span>
-                                {% endif %}
-                            {% elif order.status == 'MATCHED' %}
-                                <span class="text-success fw-bold" style="font-size: 10px;"><i class="bi bi-check2-all"></i> Đã khớp</span>
-                            {% else %}
-                                <span class="text-muted text-decoration-line-through" style="font-size: 10px;">{{ order.status }}</span>
-                            {% endif %}
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-        {% else %}
-        <div class="text-center text-muted py-5">
-            <i class="bi bi-journal-x fs-1 opacity-50"></i>
-            <p class="mt-3">Chưa có lệnh nào cho mã <strong>{{ symbol }}</strong>.</p>
-        </div>
-        {% endif %}
+      </div>
     </div>
 
-</div>
-
-        </div>
       </div>
     </div>
 
@@ -760,7 +728,50 @@ endblock %} {% block content %}
                                   badge.className = badgeClass;
                                   badge.innerHTML = `<strong>${d.trend}</strong>`;
 
-                                  txt.innerHTML = d.reason.replace(/ • /g, '<br><span class="text-info fw-bold">• </span>');
+                                  // --- CODE XỬ LÝ MỚI: CẮT DÒNG Ở MỌI DẤU CHẤM ---
+                                  let rawContent = d.reason; 
+                                  
+                                  // 1. Chuẩn hóa chuỗi: Biến mọi dấu hiệu ngăn cách thành ký tự xuống dòng (\n)
+                                  let normalized = rawContent
+                                      .replace(/\|\|\|/g, "\n")  // Thay dấu ||| của Python
+                                      .replace(/<br>/g, "\n")    // Thay thẻ br
+                                      .replace(/•/g, "\n");      // <--- QUAN TRỌNG: Gặp dấu chấm là thay bằng xuống dòng ngay
+
+                                  // 2. Tách chuỗi thành mảng dựa trên \n
+                                  let lines = normalized.split("\n");
+
+                                  // 3. Định nghĩa từ khóa tô màu (Giữ nguyên như cũ)
+                                  const keywords = {
+                                      "TĂNG MẠNH": "#00ff00", "TĂNG NHẸ": "#90ee90",
+                                      "GIẢM MẠNH": "#ff4444", "GIẢM NHẸ": "#ffcccb",
+                                      "Golden Cross": "#ffd700", "Death Cross": "#ff4444",
+                                      "Quá mua": "#ff8c00", "Quá bán": "#00bfff",
+                                      "rất tốt": "#00ff00", "ấn tượng": "#00ff00",
+                                      "tăng mạnh": "#00ff00", "nguồn vốn dồi dào": "#00ff00",
+                                      "thấp": "#ff4444", "sụt giảm": "#ff4444", "Rủi ro": "#ff4444",
+                                      "Định giá rẻ": "#00ff00", "Định giá cao": "#ff4444"
+                                  };
+
+                                  // 4. Xử lý từng dòng: Tô màu + Thêm dấu chấm mới ở đầu
+                                  let formattedLines = lines.map(line => {
+                                      let cleanLine = line.trim(); 
+                                      if (cleanLine === "") return ""; // Bỏ dòng trống
+
+                                      // Tô màu từ khóa
+                                      for (let key in keywords) {
+                                          let regex = new RegExp(key, "gi");
+                                          cleanLine = cleanLine.replace(regex, `<span style="color: ${keywords[key]}; font-weight: bold;">${key}</span>`);
+                                      }
+                                      
+                                      // Trả về HTML: Một thẻ div riêng biệt (sẽ tự xuống dòng) + Dấu chấm màu xanh ở đầu
+                                      return `<div style="margin-bottom: 8px; padding-left: 10px;">
+                                                <span class="text-info fw-bold" style="margin-right: 5px;">•</span> 
+                                                ${cleanLine}
+                                              </div>`;
+                                  });
+
+                                  // 5. Ghép lại và hiển thị
+                                  txt.innerHTML = formattedLines.join("");
                                 } else {
                                   txt.innerHTML = '<span class="text-danger fw-bold">Không có dữ liệu để phân tích.</span>';
                                   badge.innerHTML = "<strong>KHÔNG CÓ DỮ LIỆU</strong>";
