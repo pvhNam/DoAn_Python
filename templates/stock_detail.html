@@ -251,9 +251,17 @@ endblock %} {% block content %}
                 </div>
             </form>
             {% else %}
-            <div class="text-center py-5">
-                    <p class="text-muted small">Vui lòng đăng nhập để giao dịch.</p>
+            <div class="d-flex flex-column align-items-center justify-content-center py-3 text-center border border-secondary rounded bg-black bg-opacity-10">
+                 <div class="mb-2 text-secondary" style="opacity: 0.3;">
+                     <i class="bi bi-lock-fill" style="font-size: 2.5rem;"></i>
                  </div>
+                 
+                 <p class="text-muted small mb-2">Đăng nhập để giao dịch ngay.</p>
+                 
+                 <a href="{{ url_for('auth.login') }}" class="btn btn-warning btn-sm fw-bold px-4 py-1 shadow text-uppercase">
+                     ĐĂNG NHẬP
+                 </a>
+            </div>
             {% endif %}
 
             <hr class="border-secondary my-3" />
