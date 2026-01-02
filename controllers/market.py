@@ -208,8 +208,14 @@ def market():
 @market_bp.route("/api/predict/<symbol>")
 def api_predict(symbol):
     symbol = symbol.upper()
+    print(f"\n--- Đang gọi AI Predict cho mã: {symbol} ---") # LOG 1
+    
     try:
+        # Gọi hàm từ file analysis.py
         data, trend, reason, score = predict_trend(symbol, days_ahead=14)
+        
+        print(f"✅ AI trả về thành công: Trend={trend}, Score={score}") # LOG 2
+        
         return jsonify({
             "symbol": symbol,
             "trend": trend,
@@ -217,5 +223,11 @@ def api_predict(symbol):
             "score": score,
             "data": data 
         })
+        
     except Exception as e:
+        # ĐÂY LÀ DÒNG QUAN TRỌNG NHẤT: In lỗi ra terminal màu đỏ
+        print(f"❌ ❌ ❌ LỖI NGHIÊM TRỌNG KHI GỌI AI ({symbol}): {str(e)}")
+        import traceback
+        traceback.print_exc() # In chi tiết dòng code bị lỗi
+        
         return jsonify({"error": str(e)}), 500
