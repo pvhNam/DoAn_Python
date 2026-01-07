@@ -6,8 +6,8 @@ import re  # [NEW] Thêm thư viện xử lý chuỗi regex
 
 # --- CẤU HÌNH DATABASE ---
 DB_CONFIG = {
-    'user': 'stock_admin',       
-    'password': 'password123',       
+    'user': 'python',       
+    'password': '12345',       
     'host': 'localhost',
     'database': 'python', 
     'raise_on_warnings': True,

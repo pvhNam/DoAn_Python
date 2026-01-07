@@ -12,8 +12,8 @@ from tensorflow.keras.layers import LSTM, Dense, Dropout
 
 # --- CẤU HÌNH DATABASE (Phải khớp với database.py của bạn) ---
 DB_CONFIG = {
-    'user': 'stock_admin',       
-    'password': 'password123',       
+    'user': 'python',       
+    'password': '12345',       
     'host': 'localhost',
     'database': 'python' 
 }
@@ -101,7 +101,7 @@ def train_model_for_symbol(symbol):
         # 7. Bắt đầu Train
         print(f"   🚀 Đang train model (Epochs=5)...")
         # epochs=5 để chạy nhanh, muốn xịn hơn thì tăng lên 20 hoặc 50
-        model.fit(X_train, y_train, epochs=5, batch_size=32, verbose=0) 
+        model.fit(X_train, y_train, epochs=50, batch_size=32, verbose=0) 
         
         # 8. Lưu Model và Scaler
         if not os.path.exists('models_ai'):
