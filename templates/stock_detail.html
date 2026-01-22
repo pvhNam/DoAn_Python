@@ -432,7 +432,7 @@ endblock %} {% block content %}
       let candles = [];
       let volumes = [];
 
-      let rawData = {{ history | tojson | safe }};
+      let rawData = JSON.parse('{{ history | tojson | safe }}');
       if (rawData && rawData.length > 0) {
         if (loader) loader.style.display = "none";
 
