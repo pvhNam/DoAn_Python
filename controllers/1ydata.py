@@ -84,7 +84,7 @@ def save_to_db(symbol, data_list):
         if cursor: cursor.close()
         if conn and conn.is_connected(): conn.close()
 
-def get_price_history(symbol, days=1000):
+def get_price_history(symbol, days=4000):
     url = "https://s.cafef.vn/Ajax/PageNew/DataHistory/PriceHistory.ashx"
     params = {"Symbol": symbol, "PageIndex": 1, "PageSize": days}
     
@@ -167,7 +167,7 @@ def scan_all_symbols(symbol_list):
             print(f"--------------------------------")
             print(f"Đang xử lý: {symbol}...")
             
-            data = get_price_history(symbol, days=1000)
+            data = get_price_history(symbol, days=4000)
             
             if data:
                 print(f"   -> Tìm thấy {len(data)} bản ghi. Đang lưu...")

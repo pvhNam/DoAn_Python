@@ -15,12 +15,12 @@ from tensorflow.keras.callbacks import EarlyStopping
 
 # --- CẤU HÌNH ---
 DB_CONFIG = {
-    'user': 'stock_admin',       
-    'password': 'password123',       
+    'user': 'root',       
+    'password': '123456',       
     'host': 'localhost',
     'database': 'python' 
 }
-SYMBOL = "HPG"       
+SYMBOL = "ACB"       
 LOOK_BACK = 60       
 EPOCHS = 200          # Set cao để Early Stopping tự xử lý
 BATCH_SIZE = 32

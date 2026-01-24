@@ -7,7 +7,7 @@ HEADERS = {
     "Referer": "https://s.cafef.vn/"
 }
 
-def get_price_history(symbol, days=365):
+def get_price_history(symbol, days=4000):
     url = "https://s.cafef.vn/Ajax/PageNew/DataHistory/PriceHistory.ashx"
     params = {"Symbol": symbol, "PageIndex": 1, "PageSize": days}
     

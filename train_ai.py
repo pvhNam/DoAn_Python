@@ -4,7 +4,6 @@ import pandas as pd
 import joblib
 import os
 import time
-import json
 import warnings
 
 # Tắt các cảnh báo hệ thống không cần thiết
@@ -15,8 +14,7 @@ warnings.filterwarnings('ignore')
 # Thư viện AI
 from sklearn.preprocessing import MinMaxScaler
 from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import LSTM, Dense, Dropout, Input
-from ai_models import StockRNN  # Class RNN bạn đã tạo ở bước trước
+from tensorflow.keras.layers import LSTM, Dense, Dropout
 
 # Cấu hình kết nối database
 DB_CONFIG = {
@@ -50,84 +48,98 @@ def add_technical_indicators(df):
     df.dropna(inplace=True)
     return df
 
-# Hàm huấn luyện model cho từng mã cổ phiếu
+# Hàm huấn luyện model cho từng mã cổ phiếu (Cập nhật logic Walk-forward 5 bước)
 def train_model_for_symbol(symbol):
     conn = None
     try:
-        # Lấy dữ liệu lịch sử từ database
+        # 1. Lấy TOÀN BỘ dữ liệu lịch sử ngay từ đầu
         conn = mysql.connector.connect(**DB_CONFIG)
         query = f"SELECT date, close, volume FROM stock_history WHERE symbol = '{symbol}' ORDER BY date ASC"
         
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
-            df = pd.read_sql(query, conn)
+            df_full = pd.read_sql(query, conn)
         
-        # Nếu dữ liệu ít quá thì bỏ qua, không train được
-        if len(df) < 100:
-            print(f"Bỏ qua mã {symbol}: Dữ liệu quá ít ({len(df)} dòng)")
+        # Thêm chỉ báo kỹ thuật
+        df_full = add_technical_indicators(df_full)
+        
+        total_rows = len(df_full)
+        steps = 5        # Số lần train
+        step_size = 30   # [ĐÃ SỬA] Mỗi lần tăng thêm 30 ngày (theo yêu cầu)
+        look_back = 60   # Số phiên nhìn lại để dự đoán
+        
+        # Kiểm tra dữ liệu có đủ tối thiểu không (5 * 30 + 60 = 210 dòng)
+        if total_rows < (steps * step_size) + look_back:
+            print(f"⚠️ Bỏ qua mã {symbol}: Dữ liệu ({total_rows} dòng) quá ít để train 5 bước.")
             return
 
-        # Thêm các chỉ báo kỹ thuật vào dữ liệu
-        df = add_technical_indicators(df)
-        
-        # Chọn các đặc trưng (features) đầu vào để model học
-        features = ['close', 'volume', 'RSI', 'MACD', 'BB_Upper', 'BB_Lower']
-        data = df[features].values
-        
-        # Chuẩn hóa dữ liệu về khoảng 0-1 (bắt buộc đối với mạng LSTM)
-        scaler = MinMaxScaler(feature_range=(0, 1))
-        scaled_data = scaler.fit_transform(data)
-        
-        # Xử lý dữ liệu dạng chuỗi thời gian (Sliding Window)
-        # Logic: Dùng 60 phiên quá khứ để dự đoán giá đóng cửa phiên tiếp theo
-        X_train, y_train = [], []
-        look_back = 60
-        
-        if len(scaled_data) <= look_back:
-            print(f"Bỏ qua mã {symbol}: Không đủ dữ liệu sau khi cắt window")
-            return
+        print(f"⚡ Bắt đầu chuỗi huấn luyện Walk-forward cho {symbol} (Tổng data: {total_rows} dòng)")
 
-        for i in range(look_back, len(scaled_data)):
-            X_train.append(scaled_data[i-look_back:i]) # Lấy 60 dòng quá khứ
-            y_train.append(scaled_data[i, 0])          # Mục tiêu là cột Close (index 0)
-            
-        X_train, y_train = np.array(X_train), np.array(y_train)
-        
-        # Cấu trúc mạng LSTM
-        model = Sequential()
-        
-        # Layer 1: LSTM có return_sequences=True để nối tiếp sang layer sau
-        model.add(LSTM(units=50, return_sequences=True, input_shape=(X_train.shape[1], X_train.shape[2])))
-        model.add(Dropout(0.2)) # Dùng Dropout để hạn chế học vẹt (overfitting)
-        
-        # Layer 2: LSTM cuối
-        model.add(LSTM(units=50, return_sequences=False))
-        model.add(Dropout(0.2))
-        
-        # Output Layer: Trả về 1 giá trị dự đoán (Close price)
-        model.add(Dense(units=1)) 
-        
-        model.compile(optimizer='adam', loss='mean_squared_error')
-        
-        # Bắt đầu train
-        print(f"Đang train model cho {symbol} (Epochs=200)...")
-        model.fit(X_train, y_train, epochs=200, batch_size=32, verbose=0) 
-        
-        # Lưu model và scaler lại để dùng sau này
+        # Tạo thư mục models_ai nếu chưa có
         if not os.path.exists('models_ai'):
             os.makedirs('models_ai')
+
+        # 2. VÒNG LẶP TRAIN 5 LẦN
+        for i in range(steps):
+            # Tính toán lượng dữ liệu cần dùng cho lần lặp này
+            rows_to_take = total_rows - ((steps - 1 - i) * step_size)
             
-        model.save(f'models_ai/{symbol}_lstm.keras')
-        joblib.dump(scaler, f'models_ai/{symbol}_scaler.pkl')
-        
-        print(f"Đã lưu model: models_ai/{symbol}_lstm.keras")
+            # Cắt DataFrame
+            df_current = df_full.iloc[:rows_to_take]
+            
+            print(f"   ► [Lần {i+1}/{steps}] Training với {len(df_current)} ngày dữ liệu...")
+
+            # Chọn features
+            features = ['close', 'volume', 'RSI', 'MACD', 'BB_Upper', 'BB_Lower']
+            data = df_current[features].values
+            
+            # Chuẩn hóa
+            scaler = MinMaxScaler(feature_range=(0, 1))
+            scaled_data = scaler.fit_transform(data)
+            
+            # Tạo Sliding Window
+            X_train, y_train = [], []
+            if len(scaled_data) <= look_back: continue
+
+            for j in range(look_back, len(scaled_data)):
+                X_train.append(scaled_data[j-look_back:j])
+                y_train.append(scaled_data[j, 0]) 
+            
+            X_train, y_train = np.array(X_train), np.array(y_train)
+            
+            # Cấu trúc mạng LSTM
+            model = Sequential()
+            model.add(LSTM(units=50, return_sequences=True, input_shape=(X_train.shape[1], X_train.shape[2])))
+            model.add(Dropout(0.2))
+            model.add(LSTM(units=50, return_sequences=False))
+            model.add(Dropout(0.2))
+            model.add(Dense(units=1))
+            
+            model.compile(optimizer='adam', loss='mean_squared_error')
+            
+            # [ĐÃ SỬA] Giảm epochs xuống 30 để chạy nhanh hơn (Cũ là 50)
+            model.fit(X_train, y_train, epochs=30, batch_size=32, verbose=0) 
+            
+            # Lưu model từng bước
+            model_save_path = f'models_ai/{symbol}_step{i+1}.keras'
+            model.save(model_save_path)
+            
+            # Lưu model & scaler cuối cùng (quan trọng nhất)
+            if i == steps - 1:
+                model.save(f'models_ai/{symbol}_lstm.keras')
+                joblib.dump(scaler, f'models_ai/{symbol}_scaler.pkl')
+
+        print(f"✅ Đã hoàn tất huấn luyện cho mã {symbol}")
         
     except Exception as e:
-        print(f"Lỗi khi train mã {symbol}: {e}")
+        print(f"❌ Lỗi khi train mã {symbol}: {e}")
+    finally:
+        if conn and conn.is_connected():
+            conn.close()
 
 # Chạy chương trình chính
 if __name__ == "__main__":
-    print("He thong huan luyen AI chung khoan")
+    print("=== HỆ THỐNG HUẤN LUYỆN AI CHỨNG KHOÁN (WALK-FORWARD) ===")
     
     try:
         # Kết nối database để lấy danh sách mã chứng khoán
@@ -138,27 +150,27 @@ if __name__ == "__main__":
         rows = cursor.fetchall()
         conn.close()
         
-        # Chuyển kết quả query thành list
         list_ck = [row[0] for row in rows]
         
         if not list_ck:
-            print("Lỗi: Database trống, chưa có dữ liệu lịch sử.")
-            print("Vui lòng chạy file lấy dữ liệu trước.")
+            print("❌ LỖI: Database trống! Vui lòng chạy '1ydata.py' trước.")
             exit()
             
-        print(f"Tìm thấy {len(list_ck)} mã cổ phiếu.")
+        print(f"📋 Tìm thấy {len(list_ck)} mã cổ phiếu: {list_ck}")
+        print("--------------------------------------------------")
 
-        # Bắt đầu vòng lặp train từng mã
         start_time = time.time()
         
         for idx, symbol in enumerate(list_ck):
-            print(f"[{idx+1}/{len(list_ck)}] Đang xử lý mã: {symbol}")
+            print(f"\n[{idx+1}/{len(list_ck)}] Đang xử lý mã: {symbol}")
             train_model_for_symbol(symbol)
-            
-        total_duration = time.time() - total_start
+             
+        total_duration = time.time() - start_time
         
-        print(f"Hoàn tất huấn luyện toàn bộ thị trường.")
-        print(f"Tổng thời gian chạy: {duration:.2f} giây")
+        print("\n==================================================")
+        print(f"🎉 HOÀN TẤT HUẤN LUYỆN TOÀN BỘ THỊ TRƯỜNG!")
+        print(f"⏱️ Tổng thời gian: {total_duration:.2f} giây")
+        print("==================================================")
 
     except Exception as e:
-        print(f"Lỗi kết nối database: {e}")
+        print(f"❌ Lỗi kết nối Database: {e}")
