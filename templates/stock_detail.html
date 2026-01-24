@@ -484,12 +484,13 @@ endblock %} {% block content %}
       });
       volumes.push({ time: timeStr, value: adjustedVol, color: volColor });
     });
-
     candles.sort((a, b) => new Date(a.time) - new Date(b.time));
     volumes.sort((a, b) => new Date(a.time) - new Date(b.time));
 
     candlestickSeries.setData(candles);
     volumeSeries.setData(volumes);
+    ma10Series.setData(calculateSMA(candles, 10));
+    ma30Series.setData(calculateSMA(candles, 30));
     ma10Series.setData(calculateSMA(candles, 10));
     ma30Series.setData(calculateSMA(candles, 30));
     chart.timeScale().fitContent();

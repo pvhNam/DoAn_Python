@@ -12,7 +12,17 @@ class User(UserMixin):
         self.id = id
         self.username = username
         self.balance = balance
-
+# tránh lỗi disconnect
+def ensure_connection(conn):
+    """
+    Kiểm tra nếu kết nối bị ngắt thì tự động nối lại.
+    """
+    try:
+        if not conn.is_connected():
+            conn.ping(reconnect=True, attempts=3, delay=1)
+    except Exception as e:
+        print(f"Lỗi tự động kết nối lại: {e}")
+        
 # Hàm tạo user mới (Có mã hóa mật khẩu)
 def create_user(username, password):
     conn = get_db()
@@ -75,6 +85,8 @@ def verify_user(username, password):
 # Hàm lấy user theo ID (Dùng cho @login_manager.user_loader)
 def get_user_by_id(user_id):
     conn = get_db()
+    # Thêm đoạn này để sửa lỗi "MySQL Connection not available"
+    ensure_connection(conn)
     cursor = conn.cursor(dictionary=True)
     cursor.execute("SELECT * FROM users WHERE id = %s", (user_id,))
     data = cursor.fetchone()
