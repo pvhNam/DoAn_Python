@@ -31,7 +31,7 @@ def stock_detail(symbol):
         # 1. LẤY LỊCH SỬ GIÁ
         cursor = conn.cursor(dictionary=True) # Mở cursor 1
         cursor.execute("""
-            SELECT date, open, high, low, close, volume, percent_change
+            SELECT date, open, high, low, close, volume, adjusted_close, percent_change
             FROM stock_history
             WHERE symbol = %s 
             ORDER BY date ASC
@@ -39,13 +39,21 @@ def stock_detail(symbol):
         rows = cursor.fetchall()
         
         for row in rows:
+            original_close = float(row['close']) if row['close'] else 0.0  # Giữ close gốc
+            adjusted_close = float(row['adjusted_close']) if row.get('adjusted_close') else None
+            price_close = original_close  # Mặc định
+            if adjusted_close is not None:
+                price_close = adjusted_close  # Thay bằng adjusted nếu có
+
             history.append({
-                'date': str(row['date']), 
+                'date': str(row['date']),
                 'open': float(row['open']),
                 'high': float(row['high']),
                 'low': float(row['low']),
-                'close': float(row['close']),
+                'close': price_close,  # Đã là adjusted nếu có
                 'volume': int(row['volume']),
+                'original_close': original_close,  # THÊM: Close gốc để tính ratio
+                'adjusted_close': adjusted_close,  # Giữ nguyên, dùng float cho nhất quán
                 'percent_change': float(row['percent_change']) if row.get('percent_change') is not None else 0.0
             })
         

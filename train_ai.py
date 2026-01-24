@@ -4,16 +4,24 @@ import pandas as pd
 import joblib
 import os
 import time
+import json
+import warnings
 
-# Thư viện AI & Xử lý dữ liệu
+# Tắt các cảnh báo hệ thống không cần thiết
+os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
+warnings.filterwarnings('ignore')
+
+# Thư viện AI
 from sklearn.preprocessing import MinMaxScaler
 from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import LSTM, Dense, Dropout
+from tensorflow.keras.layers import LSTM, Dense, Dropout, Input
+from ai_models import StockRNN  # Class RNN bạn đã tạo ở bước trước
 
 # Cấu hình kết nối database
 DB_CONFIG = {
-    'user': 'stock_admin',       
-    'password': 'password123',       
+    'user': 'root',       
+    'password': '123456',       
     'host': 'localhost',
     'database': 'python' 
 }
@@ -44,12 +52,15 @@ def add_technical_indicators(df):
 
 # Hàm huấn luyện model cho từng mã cổ phiếu
 def train_model_for_symbol(symbol):
+    conn = None
     try:
         # Lấy dữ liệu lịch sử từ database
         conn = mysql.connector.connect(**DB_CONFIG)
         query = f"SELECT date, close, volume FROM stock_history WHERE symbol = '{symbol}' ORDER BY date ASC"
-        df = pd.read_sql(query, conn)
-        conn.close()
+        
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            df = pd.read_sql(query, conn)
         
         # Nếu dữ liệu ít quá thì bỏ qua, không train được
         if len(df) < 100:
@@ -144,8 +155,7 @@ if __name__ == "__main__":
             print(f"[{idx+1}/{len(list_ck)}] Đang xử lý mã: {symbol}")
             train_model_for_symbol(symbol)
             
-        end_time = time.time()
-        duration = end_time - start_time
+        total_duration = time.time() - total_start
         
         print(f"Hoàn tất huấn luyện toàn bộ thị trường.")
         print(f"Tổng thời gian chạy: {duration:.2f} giây")
