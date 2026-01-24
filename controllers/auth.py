@@ -9,7 +9,6 @@ def login():
     if request.method == "POST":
         user_data = verify_user(request.form["username"], request.form["password"])
         if user_data:
-            # Import User ở đây để tránh circular import nếu cần, hoặc dùng từ models
             from models.user import User 
             user_obj = User(user_data["id"], user_data["username"], user_data["balance"])
             login_user(user_obj)
