@@ -52,6 +52,7 @@ def trade():
             
     except:
         flash("Dữ liệu nhập vào không hợp lệ", "danger")
+        flash("Dữ liệu nhập vào không hợp lệ", "danger")
         return redirect(url_for("market.stock_detail", symbol=symbol))
 
     # Lấy giá thị trường hiện tại (Dùng cho MP)
@@ -71,6 +72,7 @@ def trade():
 
     conn = get_db()
     cursor = conn.cursor(dictionary=True)
+
 
     try:
         # KIỂM TRA SỨC MUA / KHO
@@ -273,6 +275,8 @@ def trade():
 
     except Exception as e:
         conn.rollback()
+        print(f"Trade Error: {e}") 
+        flash(f"Lỗi: {e}", "danger")
         print(f"Trade Error: {e}") 
         flash(f"Lỗi: {e}", "danger")
     finally:
