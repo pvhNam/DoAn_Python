@@ -1,7 +1,7 @@
 import pandas as pd
 import re
 from flask import Flask
-from models.database import get_db  # Giữ nguyên nếu bạn dùng Flask
+from models.database import get_db  
 
 app = Flask(__name__)
 
