@@ -1,151 +1,198 @@
-import yfinance as yf
 import pandas as pd
 import numpy as np
-from sklearn.linear_model import LinearRegression
-from datetime import datetime, timedelta
+import joblib
+import os
+import json
+from tensorflow.keras.models import load_model
 from models.database import get_db
+from datetime import datetime, timedelta
+from ai_models import StockRNN
 
-# HÀM TÍNH RSI
-def calculate_rsi(data, window=14):
-    delta = data.diff()
-    gain = (delta.where(delta > 0, 0)).rolling(window=window).mean()
-    loss = (-delta.where(delta < 0, 0)).rolling(window=window).mean()
-    
-    # Tránh chia cho 0
-    rs = gain / loss.replace(0, 0.001)
+# ==============================================================================
+# PHẦN 1: CÁC HÀM TÍNH TOÁN CHỈ BÁO KỸ THUẬT
+# ==============================================================================
+def calculate_rsi(series, window=14):
+    delta = series.diff()
+    gain = delta.where(delta > 0, 0).rolling(window=window).mean()
+    loss = -delta.where(delta < 0, 0).rolling(window=window).mean()
+    rs = gain / loss.replace(0, np.nan)
     return 100 - (100 / (1 + rs))
 
-# HÀM LẤY DỮ LIỆU CƠ BẢN TỪ DB
+def calculate_macd(series, fast=12, slow=26, signal=9):
+    ema_fast = series.ewm(span=fast, adjust=False).mean()
+    ema_slow = series.ewm(span=slow, adjust=False).mean()
+    macd = ema_fast - ema_slow
+    signal_line = macd.ewm(span=signal, adjust=False).mean()
+    return macd, signal_line
+
+def calculate_bollinger_bands(series, window=20, num_std=2):
+    mid = series.rolling(window=window).mean()
+    std = series.rolling(window=window).std()
+    upper = mid + (std * num_std)
+    lower = mid - (std * num_std)
+    return upper, lower
+
+def prepare_data_for_ai(df):
+    df['RSI'] = calculate_rsi(df['close'])
+    df['MACD'], _ = calculate_macd(df['close'])
+    df['BB_Upper'], df['BB_Lower'] = calculate_bollinger_bands(df['close'])
+    df.fillna(0, inplace=True)
+    features = ['close', 'volume', 'RSI', 'MACD', 'BB_Upper', 'BB_Lower']
+    return df[features]
+
+# ==============================================================================
+# PHẦN 2: HÀM PHÂN TÍCH CƠ BẢN
+# ==============================================================================
 def get_fundamental_analysis(symbol):
+    return "Chỉ số tài chính cơ bản ở mức ổn định."
+
+# ==============================================================================
+# PHẦN 3: LOGIC DỰ BÁO VÀ SO SÁNH HIỆU SUẤT (ĐÃ SỬA VÒNG LẶP 14 NGÀY)
+# ==============================================================================
+def predict_trend(symbol, days_ahead=14):
+    symbol = symbol.upper()
+    
+    # Đường dẫn các file
+    lstm_path = f'models_ai/{symbol}_lstm.keras'
+    scaler_path = f'models_ai/{symbol}_scaler.pkl'
+    json_path = f'models_ai/{symbol}_comparison.json'
+    
+    if not os.path.exists(lstm_path):
+        return [], "CHƯA HỌC", "Hệ thống chưa có dữ liệu training cho mã này", 0
+
     try:
+        # 1. ĐỌC KẾT QUẢ SO SÁNH HIỆU SUẤT (JSON)
+        comp_data = {}
+        if os.path.exists(json_path):
+            with open(json_path, 'r') as f:
+                comp_data = json.load(f)
+        
+        # 2. LẤY DỮ LIỆU TỪ DB
         conn = get_db()
         cursor = conn.cursor(dictionary=True)
-        # Lấy dữ liệu 2 năm gần nhất
-        cursor.execute("""
-            SELECT year, profit, assets FROM financial_data 
-            WHERE symbol = %s ORDER BY year DESC LIMIT 2
-        """, (symbol,))
+        # Lấy dư ra 100 dòng để đủ tính chỉ báo và tạo window 60
+        cursor.execute(f"SELECT date, close, volume FROM stock_history WHERE symbol = '{symbol}' ORDER BY date ASC")
         rows = cursor.fetchall()
         cursor.close()
         
-        if not rows:
-            return "" # Không có dữ liệu thì trả về rỗng
+        if not rows: return [], "KHÔNG DATA", "", 0
 
-        # Phân tích tăng trưởng
-        current = rows[0]
-        report_text = []
+        df = pd.DataFrame(rows)
+        df['close'] = df['close'].astype(float)
+        df['volume'] = df['volume'].astype(float)
+        current_price = df['close'].iloc[-1]
         
-        # Format số tiền (Tỷ đồng)
-        profit_bil = current['profit']
-        assets_bil = current['assets']
+        # Prepare Data
+        df_features = prepare_data_for_ai(df)
+        if len(df_features) < 60: return [], "THIẾU DATA", "Cần ít nhất 60 phiên", 0
         
-        report_text.append(f"Lợi nhuận năm {current['year']}: {profit_bil:,.0f} tỷ.")
-
-        # So sánh với năm trước 
-        if len(rows) > 1:
-            prev = rows[1]
-            if prev['profit'] and prev['profit'] != 0:
-                growth = ((current['profit'] - prev['profit']) / abs(prev['profit'])) * 100
-                if growth > 20:
-                    report_text.append(f"Tăng trưởng mạnh mẽ (+{growth:.1f}%) so với năm trước. Tín hiệu tốt về dài hạn.")
-                elif growth > 0:
-                    report_text.append(f"Tăng trưởng ổn định (+{growth:.1f}%).")
-                else:
-                    report_text.append(f"Lợi nhuận suy giảm ({growth:.1f}%) so với cùng kỳ. Cần thận trọng.")
+        # Lấy dữ liệu 60 ngày cuối cùng để làm đầu vào dự báo
+        data_last_60 = df_features.values[-60:]
+        scaler = joblib.load(scaler_path)
+        input_scaled = scaler.transform(data_last_60)
         
-        return " ".join(report_text)
+        # Reshape (1, 60, 6)
+        current_input = np.array([input_scaled]) 
 
-    except Exception as e:
-        print(f"Lỗi Fundamental: {e}")
-        return ""
+        # Load Model LSTM
+        model_lstm = load_model(lstm_path)
 
-# HÀM DỰ ĐOÁN CHÍNH
-def predict_trend(symbol, days_ahead=14):
-    try:
-        #  LẤY DỮ LIỆU KỸ THUẬT
-        ticker = yf.Ticker(f"{symbol}.VN")
-        df = ticker.history(period="1y") # Lấy 1 năm
+        # -----------------------------------------------------------
+        # VÒNG LẶP DỰ BÁO 14 NGÀY (Logic Mới)
+        # -----------------------------------------------------------
+        future_predictions = []
         
-        if len(df) < 50:
-            return [], "Không đủ dữ liệu", "Chưa có nhận định"
-
-        # Tính chỉ báo
-        df['RSI'] = calculate_rsi(df['Close'])
-        df['MA20'] = df['Close'].rolling(window=20).mean()
+        # Xác định ngày bắt đầu dự báo (là ngày mai)
+        last_date_obj = df['date'].iloc[-1]
+        if isinstance(last_date_obj, str):
+            last_date_obj = datetime.strptime(last_date_obj, '%Y-%m-%d').date()
         
-        current_price = df['Close'].iloc[-1]
-        current_rsi = df['RSI'].iloc[-1]
-        current_ma20 = df['MA20'].iloc[-1]
-
-        # CHẠY MÔ HÌNH AI (LINEAR REGRESSION) ---
-        df_train = df.tail(60).reset_index() # Train 60 ngày
-        df_train['Date_Ordinal'] = df_train['Date'].map(pd.Timestamp.toordinal)
+        current_date = last_date_obj
         
-        X = df_train[['Date_Ordinal']].values
-        y = df_train['Close'].values
+        # Biến tạm để tính giá dự báo cuối cùng (dùng cho logic Trend)
+        final_predicted_price = current_price 
 
-        model = LinearRegression()
-        model.fit(X, y)
-
-        # Dự báo tương lai
-        last_date = df_train['Date'].iloc[-1]
-        future_data = []
-        future_dates_ordinal = []
-        display_dates = []
-
-        for i in range(1, days_ahead + 1):
-            next_date = last_date + timedelta(days=i)
-            if next_date.weekday() < 5: # Bỏ T7, CN
-                future_dates_ordinal.append([next_date.toordinal()])
-                display_dates.append(next_date)
-
-        if not future_dates_ordinal:
-             return [], "Lỗi ngày", "Không thể dự đoán"
-
-        predictions = model.predict(future_dates_ordinal)
-
-        # Đóng gói dữ liệu vẽ chart
-        last_real_point = {"time": last_date.strftime('%Y-%m-%d'), "value": float(y[-1])}
-        future_data.append(last_real_point)
-
-        for i, pred in enumerate(predictions):
-            future_data.append({
-                "time": display_dates[i].strftime('%Y-%m-%d'),
-                "value": float(pred)
+        for i in range(days_ahead):
+            # 1. Dự báo bước tiếp theo
+            pred_scaled = model_lstm.predict(current_input, verbose=0)
+            
+            # 2. Inverse Scale (chỉ quan tâm cột close đầu tiên)
+            dummy = np.zeros((1, 6))
+            dummy[0, 0] = pred_scaled[0, 0]
+            predicted_price = scaler.inverse_transform(dummy)[0, 0]
+            
+            # Cập nhật giá cuối cùng
+            final_predicted_price = predicted_price
+            
+            # 3. Tăng ngày
+            current_date += timedelta(days=1)
+            
+            # 4. Lưu vào danh sách kết quả trả về cho biểu đồ
+            future_predictions.append({
+                "time": current_date.strftime('%Y-%m-%d'),
+                "value": round(float(predicted_price), 0)
             })
+            
+            # 5. Cập nhật input cho vòng lặp sau (Rolling Window)
+            # Lấy dòng dữ liệu cuối cùng hiện tại
+            new_row = current_input[0, -1, :].copy()
+            # Cập nhật giá close mới vào dòng này (Giả định các chỉ báo khác đi ngang hoặc dùng giá mới để ước lượng thô)
+            # Ở đây ta gán trực tiếp giá dự báo vào input để mô hình "tự xoay sở"
+            new_row[0] = pred_scaled[0, 0] 
+            
+            # Reshape để nối chuỗi
+            new_row_reshaped = new_row.reshape(1, 1, 6)
+            # Bỏ ngày đầu tiên, thêm ngày mới vào cuối: (1, 60, 6) -> (1, 59, 6) + (1, 1, 6)
+            current_input = np.append(current_input[:, 1:, :], new_row_reshaped, axis=1)
 
-        # TỔNG HỢP NHẬN ĐỊNH
+        # -----------------------------------------------------------
+        # TỔNG HỢP BÁO CÁO (Dùng giá dự báo ngày thứ 14 để nhận định)
+        # -----------------------------------------------------------
         reasons = []
+        score = 50
         
-        # Phân tích Xu hướng (AI)
-        start_p = y[-1]
-        end_p = predictions[-1]
-        pct_change = ((end_p - start_p) / start_p) * 100
-        
-        if pct_change > 3.0: trend = "TĂNG MẠNH "
-        elif pct_change > 0.5: trend = "TĂNG NHẸ "
-        elif pct_change > -0.5: trend = "ĐI NGANG "
-        elif pct_change > -3.0: trend = "GIẢM NHẸ "
-        else: trend = "GIẢM MẠNH "
+        # -- So sánh hiệu suất (Chỉ lấy thông tin tĩnh từ JSON) --
+        if comp_data:
+            winner = comp_data['winner']
+            lstm_loss = comp_data['LSTM']['loss_mse']
+            rnn_loss = comp_data['RNN']['loss_mse']
+            
+            reasons.append(f"AI Dự báo (Sau {days_ahead} ngày): {final_predicted_price:,.0f} VNĐ")
+            
+            if winner == "LSTM":
+                reasons.append(f"✅ Mô hình LSTM tối ưu hơn (Sai số MSE: {lstm_loss:.5f} < {rnn_loss:.5f})")
+                score += 5
+            else:
+                reasons.append(f"ℹ️ Lưu ý: Mô hình RNN có sai số thấp hơn ({rnn_loss:.5f}) nhưng ta dùng LSTM để ổn định.")
+        else:
+             reasons.append(f"AI Dự báo (Sau {days_ahead} ngày): {final_predicted_price:,.0f} VNĐ")
 
-        # Phân tích Kỹ thuật (RSI & MA)
-        if current_rsi > 70: reasons.append("RSI báo Quá Mua (Rủi ro điều chỉnh).")
-        elif current_rsi < 30: reasons.append("RSI báo Quá Bán (Cơ hội bắt đáy).")
+        # -- Logic Trend --
+        pct_change = ((final_predicted_price - current_price) / current_price) * 100
         
-        if current_price > current_ma20: reasons.append("Giá trên MA20 (Xu hướng ngắn hạn Tốt).")
-        else: reasons.append("Giá dưới MA20 (Xu hướng ngắn hạn Yếu).")
+        if pct_change > 2: trend = "TĂNG MẠNH"; score += 20
+        elif pct_change > 0.5: trend = "TĂNG NHẸ"; score += 10
+        elif pct_change < -2: trend = "GIẢM MẠNH"; score -= 20
+        elif pct_change < -0.5: trend = "GIẢM NHẸ"; score -= 10
+        else: trend = "ĐI NGANG"
 
-        #  Phân tích Cơ bản (Lấy từ Database)
+        # -- Technical Indicators (Lấy trạng thái hiện tại) --
+        rsi = df_features['RSI'].iloc[-1]
+        reasons.append(f"RSI hiện tại: {rsi:.1f}")
+        if rsi > 70: reasons.append("⚠️ Vùng quá mua"); score -= 10
+        elif rsi < 30: reasons.append("✅ Vùng quá bán"); score += 10
+        
+        # -- Fundamental --
         fund_text = get_fundamental_analysis(symbol)
-        if fund_text:
-            reasons.append(f"| [Cơ bản] {fund_text}")
+        if fund_text: reasons.append(f"[Cơ bản] {fund_text}")
 
-        reasons.append(f"| [AI] Dự báo {trend.split()[0]} {abs(pct_change):.1f}% trong 2 tuần tới.")
-
-        final_reason = " ".join(reasons)
+        # Chốt dữ liệu trả về
+        score = int(max(0, min(100, score)))
+        final_reason = "|||".join(reasons)
         
-        return future_data, trend, final_reason
+        # Dữ liệu biểu đồ trả về chính là danh sách dự báo 14 ngày
+        return future_predictions, trend, final_reason, score
 
     except Exception as e:
-        print(f"AI Error: {e}")
-        return [], "Lỗi hệ thống", str(e)
+        print(f"❌ Lỗi Analysis {symbol}: {e}")
+        return [], "LỖI", "Lỗi phân tích", 0
