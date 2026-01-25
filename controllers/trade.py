@@ -52,7 +52,6 @@ def trade():
             
     except:
         flash("Dữ liệu nhập vào không hợp lệ", "danger")
-        flash("Dữ liệu nhập vào không hợp lệ", "danger")
         return redirect(url_for("market.stock_detail", symbol=symbol))
 
     # Lấy giá thị trường hiện tại (Dùng cho MP)
@@ -88,7 +87,7 @@ def trade():
                 flash("Không đủ cổ phiếu!", "danger")
                 return redirect(url_for("market.stock_detail", symbol=symbol))
 
-        # KHÓA TÀI SẢN (LOCK ASSETS)
+        # tài sản sau khi đặt lệnh
         if side == 'BUY':
              cursor.execute("UPDATE users SET balance = balance - %s WHERE id = %s", (total_val, current_user.id))
         else: # SELL
@@ -114,7 +113,7 @@ def trade():
                 """, (symbol, my_price, qty))
             else: 
                 # MP Mua: Tìm người Bán giá RẺ NHẤT bất kể giá nào (vì tôi chấp nhận giá thị trường)
-                # Tuy nhiên để an toàn, thường chỉ khớp trong biên độ trần/sàn, ở đây ta đơn giản hóa là lấy giá tốt nhất
+                # Tuy nhiên để an toàn, thường chỉ khớp trong biên độ trần/sàn
                 cursor.execute("""
                     SELECT * FROM orders 
                     WHERE symbol = %s AND side = 'SELL' AND status = 'PENDING' 
@@ -259,7 +258,7 @@ def trade():
             
             else:
                 # Nếu là LO -> TREO LỆNH (PENDING)
-                flash(f"Lệnh LO giá {my_price:,.0f} đã được treo (PENDING)!", "info")
+                flash(f"Lệnh LO giá {my_price:,.0f} đã được treo !", "info")
 
             # Lưu lệnh vào Database
             cursor.execute("""

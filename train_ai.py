@@ -64,16 +64,16 @@ def train_model_for_symbol(symbol):
         df_full = add_technical_indicators(df_full)
         
         total_rows = len(df_full)
-        steps = 5        # Số lần train
-        step_size = 30   # [ĐÃ SỬA] Mỗi lần tăng thêm 30 ngày (theo yêu cầu)
+        steps = 5       
+        step_size = 30   #  Mỗi lần tăng thêm 30 ngày 
         look_back = 60   # Số phiên nhìn lại để dự đoán
         
         # Kiểm tra dữ liệu có đủ tối thiểu không (5 * 30 + 60 = 210 dòng)
         if total_rows < (steps * step_size) + look_back:
-            print(f"⚠️ Bỏ qua mã {symbol}: Dữ liệu ({total_rows} dòng) quá ít để train 5 bước.")
+            print(f" Bỏ qua mã {symbol}: Dữ liệu ({total_rows} dòng) quá ít để train 5 bước.")
             return
 
-        print(f"⚡ Bắt đầu chuỗi huấn luyện Walk-forward cho {symbol} (Tổng data: {total_rows} dòng)")
+        print(f" Bắt đầu chuỗi huấn luyện Walk-forward cho {symbol} (Tổng data: {total_rows} dòng)")
 
         # Tạo thư mục models_ai nếu chưa có
         if not os.path.exists('models_ai'):
@@ -117,22 +117,21 @@ def train_model_for_symbol(symbol):
             
             model.compile(optimizer='adam', loss='mean_squared_error')
             
-            # [ĐÃ SỬA] Giảm epochs xuống 30 để chạy nhanh hơn (Cũ là 50)
             model.fit(X_train, y_train, epochs=30, batch_size=32, verbose=0) 
             
             # Lưu model từng bước
             model_save_path = f'models_ai/{symbol}_step{i+1}.keras'
             model.save(model_save_path)
             
-            # Lưu model & scaler cuối cùng (quan trọng nhất)
+            # Lưu model & scaler cuối cùng 
             if i == steps - 1:
                 model.save(f'models_ai/{symbol}_lstm.keras')
                 joblib.dump(scaler, f'models_ai/{symbol}_scaler.pkl')
 
-        print(f"✅ Đã hoàn tất huấn luyện cho mã {symbol}")
+        print(f" Đã hoàn tất huấn luyện cho mã {symbol}")
         
     except Exception as e:
-        print(f"❌ Lỗi khi train mã {symbol}: {e}")
+        print(f" Lỗi khi train mã {symbol}: {e}")
     finally:
         if conn and conn.is_connected():
             conn.close()
@@ -153,10 +152,10 @@ if __name__ == "__main__":
         list_ck = [row[0] for row in rows]
         
         if not list_ck:
-            print("❌ LỖI: Database trống! Vui lòng chạy '1ydata.py' trước.")
+            print(" LỖI: Database trống! Vui lòng chạy '1ydata.py' trước.")
             exit()
             
-        print(f"📋 Tìm thấy {len(list_ck)} mã cổ phiếu: {list_ck}")
+        print(f"Tìm thấy {len(list_ck)} mã cổ phiếu: {list_ck}")
         print("--------------------------------------------------")
 
         start_time = time.time()
@@ -168,9 +167,9 @@ if __name__ == "__main__":
         total_duration = time.time() - start_time
         
         print("\n==================================================")
-        print(f"🎉 HOÀN TẤT HUẤN LUYỆN TOÀN BỘ THỊ TRƯỜNG!")
-        print(f"⏱️ Tổng thời gian: {total_duration:.2f} giây")
+        print(f"HOÀN TẤT HUẤN LUYỆN TOÀN BỘ THỊ TRƯỜNG!")
+        print(f"Tổng thời gian: {total_duration:.2f} giây")
         print("==================================================")
 
     except Exception as e:
-        print(f"❌ Lỗi kết nối Database: {e}")
+        print(f" Lỗi kết nối Database: {e}")

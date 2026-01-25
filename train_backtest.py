@@ -5,7 +5,7 @@ import joblib
 import os
 import json
 import warnings
-from datetime import datetime  # <--- QUAN TRỌNG: Thêm thư viện này
+from datetime import datetime, timedelta  # <--- 1. Thêm timedelta
 
 os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
@@ -45,16 +45,28 @@ def train_backtest(symbol):
         df = pd.read_sql(query, conn)
         conn.close()
 
-        # --- SỬA LỖI TẠI ĐÂY ---
-        # Chuyển chuỗi '2025-06-01' thành đối tượng date để so sánh được với database
+        # --- SỬA LỖI VÀ THÊM LOGIC 10 NĂM TẠI ĐÂY ---
+        
+        # 1. Xác định ngày kết thúc (Split date)
         split_date_obj = datetime.strptime(SPLIT_DATE, '%Y-%m-%d').date()
         
-        # Lọc dữ liệu: date < 2025-06-01
-        df_train = df[df['date'] < split_date_obj].copy()
-        
-        print(f"   📅 Dữ liệu train đến: {df_train['date'].iloc[-1]} (Tổng {len(df_train)} bản ghi)")
+        # 2. Xác định ngày bắt đầu (10 năm trước)
+        # 365 * 10 = 3650 ngày (xấp xỉ 10 năm)
+        start_date_obj = split_date_obj - timedelta(days=365 * 10)
 
-        if len(df_train) < 100: return
+        print(f" ⏳ Lọc dữ liệu từ {start_date_obj} đến {split_date_obj} (10 năm)")
+
+        # 3. Lọc dữ liệu: Lấy >= 10 năm trước VÀ < ngày split
+        df_train = df[
+            (df['date'] >= start_date_obj) & 
+            (df['date'] < split_date_obj)
+        ].copy()
+        
+        print(f" 📅 Dữ liệu thực tế train đến: {df_train['date'].iloc[-1]} (Tổng {len(df_train)} bản ghi)")
+
+        if len(df_train) < 100: 
+            print("⚠️ Dữ liệu quá ít để train!")
+            return
 
         df_train = add_technical_indicators(df_train)
         features = ['adjusted_close', 'volume', 'RSI', 'MACD', 'BB_Upper', 'BB_Lower']
@@ -101,5 +113,5 @@ def train_backtest(symbol):
         print(f"❌ Lỗi {symbol}: {e}")
 
 if __name__ == "__main__":
-    print(f"🛡️ CHẾ ĐỘ BACKTEST: Train dữ liệu trước {SPLIT_DATE}")
+    print(f"🛡️ CHẾ ĐỘ BACKTEST: Train 10 năm dữ liệu trước {SPLIT_DATE}")
     train_backtest('MBB')
